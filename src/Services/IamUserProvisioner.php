@@ -82,14 +82,35 @@ class IamUserProvisioner
         foreach ($fields as $column => $claim) {
             $value = data_get($payload, $claim);
 
+            // Fallback untuk payload yang berisi data di token_info (legacy/docs)
+            if ($value === null) {
+                $value = data_get($payload, "token_info.{$claim}");
+            }
+
             if ($value !== null) {
                 $attributes[$column] = $value;
             }
         }
 
-        if (! array_key_exists($identifierField, $attributes)) {
+        // Pastikan nip selalu tersedia jika dikirim server SSO
+        if (! array_key_exists('nip', $attributes)) {
+            $nip = data_get($payload, 'nip', data_get($payload, 'token_info.nip'));
+            if ($nip !== null) {
+                $attributes['nip'] = $nip;
+            }
+        }
+
+        $identifierValue = $attributes[$identifierField] ?? null;
+
+        // Jika identifier yang dikonfigurasi tidak tersedia, fallback ke NIP jika ada
+        if (empty($identifierValue) && ! empty($attributes['nip'])) {
+            $identifierField = 'nip';
+            $identifierValue = $attributes['nip'];
+        }
+
+        if (empty($identifierValue)) {
             throw new IamAuthenticationException(
-                sprintf('Missing identifier field [%s] from IAM payload.', $identifierField)
+                sprintf('Unable to provision SSO user: missing identifier field [%s] and no NIP available in payload.', config('iam.identifier_field', 'email'))
             );
         }
 
@@ -100,8 +121,8 @@ class IamUserProvisioner
         $userModel = config('iam.user_model', 'App\\Models\\User');
 
         return $userModel::query()->updateOrCreate(
-            [$identifierField => $attributes[$identifierField]],
-            $attributes,
+            [$identifierField => $identifierValue],
+            $attributes
         );
     }
 
