@@ -147,13 +147,25 @@ return [
     'user_fields' => [
         'iam_id' => 'sub',        // Required: JWT sub maps to iam_id
         'name' => 'name',
-        'email' => 'email',
+        // 'email' => 'email',
         // Add custom mappings:
-        // 'nip' => 'nip',
+        'nip' => 'nip',
         // 'nik' => 'nik',
         // 'employee_id' => 'employee_id',
         // 'phone' => 'phone_number',
     ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Unit Kerja Synchronization
+    |
+    | These settings ensure client-side user unit kerja is synchronized
+    | from IAM token payload.
+    */
+    'unit_kerja_field' => env('IAM_UNIT_KERJA_FIELD', 'unit_kerja'),
+    'require_unit_kerja' => env('IAM_REQUIRE_UNIT_KERJA', true),
+    'sync_unit_kerja' => env('IAM_SYNC_UNIT_KERJA', true),
+    'unit_kerja_model' => env('IAM_UNIT_KERJA_MODEL', App\Models\UnitKerja::class),
 
     /*
     |--------------------------------------------------------------------------

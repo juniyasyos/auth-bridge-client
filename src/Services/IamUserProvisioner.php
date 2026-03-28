@@ -61,15 +61,103 @@ class IamUserProvisioner
 
         $payload = $response->json() ?? [];
 
+        $unitKerjaValues = $this->resolveUnitKerjaValues($payload);
+
+        if (config('iam.require_unit_kerja', true) && count($unitKerjaValues) === 0) {
+            throw new IamAuthenticationException(
+                sprintf('Unable to provision SSO user: missing required unit kerja claim [%s].', config('iam.unit_kerja_field', 'unit_kerja'))
+            );
+        }
+
         $user = $this->syncUser($payload);
+        $this->syncUnitKerja($user, $unitKerjaValues);
         $this->syncRoles($user, $payload);
 
         Log::info('User provisioned', [
             'user_id' => $user->getAuthIdentifier(),
             'email' => $user->email ?? null,
+            'unit_kerja' => $unitKerjaValues,
         ]);
 
         return [$user, $payload];
+    }
+
+    protected function resolveUnitKerjaValues(array $payload): array
+    {
+        $field = config('iam.unit_kerja_field', 'unit_kerja');
+
+        $raw = data_get($payload, $field, data_get($payload, "token_info.{$field}"));
+
+        if ($raw === null) {
+            return [];
+        }
+
+        if (is_string($raw)) {
+            if (trim($raw) === '') {
+                return [];
+            }
+
+            // support comma-separated string, e.g. "unit1,unit2"
+            $values = array_filter(array_map('trim', explode(',', $raw)), fn($item) => $item !== '');
+
+            return array_values(array_unique($values));
+        }
+
+        if (is_array($raw)) {
+            $values = array_filter(array_map(function ($item) {
+                if (is_string($item)) {
+                    return trim($item);
+                }
+
+                return $item;
+            }, $raw), fn($item) => $item !== null && $item !== '');
+
+            return array_values(array_unique($values));
+        }
+
+        return [(string) $raw];
+    }
+
+    protected function syncUnitKerja(Model $user, array $unitKerjaValues): void
+    {
+        if (! config('iam.sync_unit_kerja', true)) {
+            return;
+        }
+
+        if (empty($unitKerjaValues)) {
+            return;
+        }
+
+        if (! method_exists($user, 'unitKerjas')) {
+            Log::warning('IAM unit_kerja sync skipped because unitKerjas() relation is missing on user model.');
+            return;
+        }
+
+        $unitKerjaModel = config('iam.unit_kerja_model', \App\Models\UnitKerja::class);
+
+        if (! class_exists($unitKerjaModel)) {
+            Log::warning('IAM unit_kerja sync skipped because unit_kerja_model class does not exist.', ['unit_kerja_model' => $unitKerjaModel]);
+            return;
+        }
+
+        $unitIds = [];
+
+        foreach ($unitKerjaValues as $unitValue) {
+            if (is_numeric($unitValue) && $unitKerjaModel::whereKey($unitValue)->exists()) {
+                $unit = $unitKerjaModel::find($unitValue);
+            } else {
+                $unit = $unitKerjaModel::firstOrCreate(['unit_name' => (string) $unitValue], ['description' => 'Synced from IAM provisioning']);
+            }
+
+            if ($unit) {
+                $unitIds[] = $unit->getKey();
+            }
+        }
+
+        if (! empty($unitIds)) {
+            $user->unitKerjas()->sync(array_values(array_unique($unitIds)));
+            Log::info('User unit_kerja synced from IAM', ['user_id' => $user->getAuthIdentifier(), 'unit_kerja' => $unitKerjaValues]);
+        }
     }
 
     protected function syncUser(array $payload): Model

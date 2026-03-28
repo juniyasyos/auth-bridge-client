@@ -146,6 +146,10 @@ Signature middleware memeriksa secret dari `config('sso.secret')` atau `env('SSO
 - `iam.verify_each_request` — aktifkan/disable verifikasi token setiap request.
 - `iam.attach_verify_middleware` — bila `true`, package otomatis menambahkan `iam.verify` ke group `web`.
 - `iam.require_roles` — tolak sesi jika token tidak mengandung role (dicek oleh `iam.auth`).
+- `iam.unit_kerja_field` — nama claim JWT yang berisi unit kerja user.
+- `iam.require_unit_kerja` — tolak login jika klaim unit kerja tidak tersedia.
+- `iam.sync_unit_kerja` — sync relasi `unitKerjas()` pada model user setelah provisioning.
+- `iam.unit_kerja_model` — model Eloquent yang mewakili unit kerja (default: `App\\Models\\UnitKerja`).
 - `store_access_token_in_session` — middleware verifikasi membaca token dari session (`iam.access_token`).
 
 > Middleware alias didaftarkan otomatis oleh package (`IamClientServiceProvider`). Anda tidak perlu mendaftarkannya manual kecuali ingin override di `app/Http/Kernel.php`.
