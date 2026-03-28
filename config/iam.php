@@ -72,6 +72,17 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | User applications endpoint on IAM server
+    |--------------------------------------------------------------------------
+    |
+    | This URL is used by the client package to fetch the currently
+    | authenticated user's applications from IAM server.
+    |
+    */
+    'user_applications_endpoint' => env('IAM_USER_APPLICATIONS_ENDPOINT', null),
+
+    /*
+    |--------------------------------------------------------------------------
     | Default Web Guard SSO Routes
     |--------------------------------------------------------------------------
     |

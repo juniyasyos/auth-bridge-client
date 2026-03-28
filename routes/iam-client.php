@@ -63,6 +63,13 @@ Route::middleware('web')->group(function () {
         ->name('iam.iam.logout')
         ->defaults('guard', 'web');
 
+    // Fetch current user's IAM applications from IAM server.
+    // Requires that the user is already authenticated and has a valid token in session.
+    Route::get('/iam/user-applications', \Juniyasyos\IamClient\Http\Controllers\IamUserApplicationsController::class)
+        ->name('iam.user-applications')
+        ->middleware(['iam.verify'])
+        ->defaults('guard', 'web');
+
     // OP → client back‑channel logout (server→server). Verifies HMAC signature.
     Route::post('/iam/backchannel-logout', \Juniyasyos\IamClient\Http\Controllers\BackchannelLogoutController::class)
         ->name('iam.backchannel.logout')

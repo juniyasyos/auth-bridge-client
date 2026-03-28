@@ -67,6 +67,25 @@ class IamConfig
         return $host . '/api/verify';
     }
 
+    public static function userApplicationsEndpoint(): string
+    {
+        $explicit = (string) config('iam.user_applications_endpoint');
+
+        if ($explicit) {
+            return $explicit;
+        }
+
+        $service = (string) config('services.iam.user_applications');
+
+        if ($service) {
+            return $service;
+        }
+
+        $host = self::baseUrl();
+
+        return $host . '/api/users/applications';
+    }
+
     public static function appKey(): string
     {
         return (string) config('iam.app_key', 'client-app');
