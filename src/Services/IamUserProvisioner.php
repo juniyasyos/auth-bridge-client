@@ -61,6 +61,22 @@ class IamUserProvisioner
 
         $payload = $response->json() ?? [];
 
+        // Normalize payload fields coming from IAM /api/sso/verify.
+        // Verify endpoint returns token claims under token_info, but other flows may include them at top level.
+        $tokenInfo = data_get($payload, 'token_info', []);
+
+        $payload['sub'] = $payload['sub'] ?? data_get($tokenInfo, 'sub');
+        $payload['app'] = $payload['app'] ?? data_get($tokenInfo, 'app');
+        $payload['roles'] = $payload['roles'] ?? data_get($tokenInfo, 'roles', []);
+        $payload['perms'] = $payload['perms'] ?? data_get($tokenInfo, 'perms', []);
+
+        if (! isset($payload['sub'])) {
+            Log::warning('IAM verify payload missing sub/app in both root and token_info', [
+                'payload' => $payload,
+                'token_info' => $tokenInfo,
+            ]);
+        }
+
         $unitKerjaValues = $this->resolveUnitKerjaValues($payload);
 
         if (config('iam.require_unit_kerja', false) && count($unitKerjaValues) === 0) {
