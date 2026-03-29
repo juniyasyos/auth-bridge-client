@@ -104,6 +104,13 @@
             <h3>❌ Authentication Failed</h3>
             <p id="errorText">@if(isset($serverError)) {{ $serverError }} @else No access token found in URL @endif</p>
 
+            @if(isset($serverErrorContext) && is_array($serverErrorContext) && count($serverErrorContext) > 0)
+            <div class="error-details" style="margin-top:10px; text-align:left; background:#fff5f5; border:1px solid #f7d3d7; border-radius:8px; padding:12px; color:#a33;">
+                <strong>Detail kesalahan:</strong>
+                <pre style="white-space:pre-wrap; word-break:break-word; margin:8px 0 0;">{{ json_encode($serverErrorContext, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) }}</pre>
+            </div>
+            @endif
+
             <div style="margin-top:12px; display:flex; gap:8px; justify-content:center;">
                 @if (\Illuminate\Support\Facades\Route::has(config('iam.login_route_name', 'login')))
                 <a href="{{ route(config('iam.login_route_name', 'login')) }}">Try Again</a>
