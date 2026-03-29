@@ -13,59 +13,59 @@ class IamServerApiService
 {
     public function getUserApplications(): array
     {
-        $token = session('iam.access_token') ?: session('iam.access_token_backup');
+        // Always use IAM server for user applications in client plugin mode.
+        $iamAccessToken = session('iam.access_token') ?? session('iam.access_token_backup');
 
-        if (empty($token)) {
-            Log::warning('IamServerApiService: no IAM access token in session', [
-                'session_iam' => session('iam'),
-                'session_iam_payload' => session('iam.payload'),
+        if (! empty($iamAccessToken)) {
+            try {
+                $endpoint = IamConfig::userApplicationsEndpoint();
+                $response = Http::withHeaders([
+                    'Authorization' => 'Bearer ' . $iamAccessToken,
+                    'Accept' => 'application/json',
+                ])->timeout(10)->get($endpoint);
+
+                if ($response->successful()) {
+                    $payload = $response->json();
+                    Log::info('IamServerApiService: fetched user applications from IAM server', [
+                        'session_id' => session()->getId(),
+                        'endpoint' => $endpoint,
+                    ]);
+
+                    // Normalize result (source plus server payload).
+                    return array_merge(['source' => 'iam-server'], (array) $payload);
+                }
+
+                Log::warning('IamServerApiService: IAM server user applications request failed', [
+                    'endpoint' => $endpoint,
+                    'status' => $response->status(),
+                    'body' => $response->body(),
+                ]);
+            } catch (\Throwable $e) {
+                Log::error('IamServerApiService exception calling IAM server', [
+                    'message' => $e->getMessage(),
+                    'session_id' => session()->getId(),
+                ]);
+            }
+        }
+
+        // Fallback: IAM session may exist but token missing or fetch failed.
+        if (! empty(session('iam.sub')) && ! empty(session('iam.app'))) {
+            Log::info('IamServerApiService: iam-session-fallback (tokenless mode)', [
                 'session_id' => session()->getId(),
-                'endpoint' => IamConfig::userApplicationsEndpoint(),
-                'request_url' => request()->fullUrl(),
-                'request_path' => request()->path(),
+                'iam_sub' => session('iam.sub'),
+                'iam_app' => session('iam.app'),
             ]);
 
-            // Fallback to local authenticated user data if available
-            if (Auth::check() && method_exists(Auth::user(), 'accessibleApps')) {
-                return [
-                    'source' => 'local-fallback',
-                    'applications' => Auth::user()->accessibleApps(),
-                ];
-            }
-
-            // Another fallback possibility for old integrations: check SSO session payload.
-            $iamData = session('iam', []);
-            if (! empty($iamData) && is_array($iamData) && Arr::get($iamData, 'sub')) {
-                return [
-                    'source' => 'iam-session-fallback',
-                    'applications' => [],
-                    'hint' => 'Token missing but IAM session exists; consider re-login or cache app list',
-                ];
-            }
-
             return [
-                'error' => 'iam_access_token_missing',
-                'message' => 'IAM access token not available in session. Please login via SSO.',
+                'source' => 'iam-session-fallback',
+                'applications' => [],
+                'hint' => 'IAM session exists without token or server response failed. Re-login if full app list required.',
             ];
         }
 
-        $endpoint = IamConfig::userApplicationsEndpoint();
-
-        $response = Http::timeout(10)
-            ->withToken($token)
-            ->acceptJson()
-            ->get($endpoint);
-
-        if (! $response->successful()) {
-            Log::error('IamServerApiService failed to load user applications from IAM', [
-                'endpoint' => $endpoint,
-                'status' => $response->status(),
-                'body' => $response->body(),
-            ]);
-
-            return [];
-        }
-
-        return $response->json() ?? [];
+        return [
+            'error' => 'iam_auth_missing',
+            'message' => 'Authenticated user or IAM session not available. Please login via SSO.',
+        ];
     }
 }
