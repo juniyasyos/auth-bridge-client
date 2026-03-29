@@ -70,11 +70,11 @@ Route::middleware('web')->group(function () {
         ->middleware(['iam.verify'])
         ->defaults('guard', 'web');
 
-    // Debug route: Web-only access to the same controller for local debugging.
+    // Debug route: Web-only access to local user app list (no Bearer token needed).
     // Anda bisa buka di browser setelah login dengan user yang valid.
-    Route::get('/iam/debug/user-applications', \Juniyasyos\IamClient\Http\Controllers\IamUserApplicationsController::class)
+    Route::get('/iam/debug/user-applications', [\Juniyasyos\IamClient\Http\Controllers\IamUserApplicationsController::class, 'webUserApplications'])
         ->name('iam.user-applications.debug')
-        ->middleware(['web'])
+        ->middleware(['web', 'auth'])
         ->defaults('guard', 'web');
 
     // OP → client back‑channel logout (server→server). Verifies HMAC signature.

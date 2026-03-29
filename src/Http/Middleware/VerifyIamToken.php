@@ -59,6 +59,42 @@ class VerifyIamToken
             return redirect()->to(config('iam.login_route', '/sso/login'))->with('warning', 'Session expired, please login again.');
         }
 
+        // Remote verification (serves on-server logout expiration/revoke)
+        if (config('iam.verify_remote_each_request', true)) {
+            try {
+                $verifyResponse = Http::timeout(4)->post(IamConfig::verifyEndpoint(), [
+                    'token' => $accessToken,
+                    'include_user_data' => false,
+                ]);
+
+                if (! $verifyResponse->successful()) {
+                    throw new \Exception('Remote verify returned non-200');
+                }
+            } catch (\Throwable $remoteException) {
+                Log::warning('IamClient::VerifyIamToken - remote verify failure, clearing session', [
+                    'error' => $remoteException->getMessage(),
+                    'session_id' => $request->session()->getId(),
+                ]);
+
+                Auth::logout();
+                $request->session()->invalidate();
+                $request->session()->regenerateToken();
+                $request->session()->forget('iam');
+
+                if ($request->wantsJson() || $request->ajax()) {
+                    return response()->json(['message' => 'Session invalidated by IAM, please login again.'], 401);
+                }
+
+                $loginRoute = IamConfig::loginRouteName(config('iam.guard', 'web'));
+
+                if (\Illuminate\Support\Facades\Route::has($loginRoute)) {
+                    return redirect()->route($loginRoute)->with('warning', 'Session invalidated by IAM, please login again.');
+                }
+
+                return redirect()->to(config('iam.login_route', '/sso/login'))->with('warning', 'Session invalidated by IAM, please login again.');
+            }
+        }
+
         return $next($request);
     }
 }

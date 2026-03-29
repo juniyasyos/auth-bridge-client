@@ -286,7 +286,16 @@ return [
     |
     */
     'verify_each_request' => env('IAM_VERIFY_EACH_REQUEST', true),
-
+    /*
+    --------------------------------------------------------------------------
+    | Remote verify token each request
+    --------------------------------------------------------------------------
+    |
+    | If true, after local JWT validation the client will call IAM `/api/sso/verify`
+    | to ensure server-side session/token state has not been revoked or expired.
+    |
+    */
+    'verify_remote_each_request' => env('IAM_VERIFY_REMOTE_EACH_REQUEST', true),
     /*    |--------------------------------------------------------------------------
     | Auto‑attach verify middleware
     |--------------------------------------------------------------------------

@@ -25,4 +25,28 @@ class IamUserApplicationsController extends Controller
 
         return response()->json($data);
     }
+
+    /**
+     * Debug route: web-only, no Bearer token needed.
+     */
+    public function webUserApplications(Request $request): JsonResponse
+    {
+        $user = $request->user();
+
+        if (! $user) {
+            return response()->json(['message' => 'Unauthorized'], 401);
+        }
+
+        if (! method_exists($user, 'accessibleApps')) {
+            return response()->json(['message' => 'User model does not implement accessibleApps'], 500);
+        }
+
+        return response()->json([
+            'source' => 'local-user',
+            'sub' => (string) $user->id,
+            'user_id' => $user->id,
+            'applications' => $user->accessibleApps(),
+            'timestamp' => now()->toIso8601String(),
+        ]);
+    }
 }

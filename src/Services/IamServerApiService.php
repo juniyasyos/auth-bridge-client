@@ -58,7 +58,6 @@ class IamServerApiService
 
             return [
                 'source' => 'iam-session-fallback',
-                'applications' => [],
                 'hint' => 'IAM session exists without token or server response failed. Re-login if full app list required.',
             ];
         }
