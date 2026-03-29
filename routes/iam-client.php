@@ -70,6 +70,13 @@ Route::middleware('web')->group(function () {
         ->middleware(['iam.verify'])
         ->defaults('guard', 'web');
 
+    // Debug route: Web-only access to the same controller for local debugging.
+    // Anda bisa buka di browser setelah login dengan user yang valid.
+    Route::get('/iam/debug/user-applications', \Juniyasyos\IamClient\Http\Controllers\IamUserApplicationsController::class)
+        ->name('iam.user-applications.debug')
+        ->middleware(['web'])
+        ->defaults('guard', 'web');
+
     // OP → client back‑channel logout (server→server). Verifies HMAC signature.
     Route::post('/iam/backchannel-logout', \Juniyasyos\IamClient\Http\Controllers\BackchannelLogoutController::class)
         ->name('iam.backchannel.logout')
