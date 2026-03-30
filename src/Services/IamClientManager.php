@@ -82,6 +82,18 @@ class IamClientManager
 
             throw new IamAuthenticationException('Access denied: insufficient roles');
         }
+
+        // Enforce access profile requirement when configured (strict)
+        if (config('iam.require_access_profile', true) && ! $user->hasActiveAccessProfiles()) {
+            Log::warning('IAM callback rejected: user does not have active access profile', [
+                'user_nip' => $user->nip ?? null,
+                'user_id' => $user->getAuthIdentifier(),
+                'app' => $payload['app'] ?? null,
+                'session_id' => session()->getId(),
+            ]);
+
+            throw new IamAuthenticationException('Access denied: user must have at least one active access profile.');
+        }
         // ------------------------------------------------------------------------------
 
         $guardInstance->login($user, true);

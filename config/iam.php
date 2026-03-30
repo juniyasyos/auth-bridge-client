@@ -262,6 +262,7 @@ return [
     */
     'require_roles' => env('IAM_REQUIRE_ROLES', false),
     'allow_roleless_sso' => env('IAM_ALLOW_ROLELESS_SSO', true),
+    'require_access_profile' => env('IAM_REQUIRE_ACCESS_PROFILE', true),
 
     /*
     |------------------------------------------------------------------------
