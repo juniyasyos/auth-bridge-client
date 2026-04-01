@@ -70,6 +70,13 @@ class IamClientServiceProvider extends ServiceProvider
             $router->pushMiddlewareToGroup('web', \Juniyasyos\IamClient\Http\Middleware\VerifyIamToken::class);
         }
 
+        if ($this->app->runningInConsole()) {
+            $this->commands([
+                \Juniyasyos\IamClient\Console\Commands\CheckIamSyncUsers::class,
+                \Juniyasyos\IamClient\Console\Commands\UserApplicationsCommand::class,
+            ]);
+        }
+
         FilamentIntegration::boot();
     }
 }

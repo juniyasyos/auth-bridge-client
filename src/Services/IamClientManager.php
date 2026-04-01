@@ -10,6 +10,7 @@ use Juniyasyos\IamClient\Data\IamLoginResult;
 use Juniyasyos\IamClient\Events\IamAuthenticated;
 use Juniyasyos\IamClient\Exceptions\IamAuthenticationException;
 use Juniyasyos\IamClient\Support\IamConfig;
+use Juniyasyos\IamClient\Support\TokenExpiryManager;
 
 class IamClientManager
 {
@@ -83,17 +84,9 @@ class IamClientManager
             throw new IamAuthenticationException('Access denied: insufficient roles');
         }
 
-        // Enforce access profile requirement when configured (strict)
-        if (config('iam.require_access_profile', true) && ! $user->hasActiveAccessProfiles()) {
-            Log::warning('IAM callback rejected: user does not have active access profile', [
-                'user_nip' => $user->nip ?? null,
-                'user_id' => $user->getAuthIdentifier(),
-                'app' => $payload['app'] ?? null,
-                'session_id' => session()->getId(),
-            ]);
-
-            throw new IamAuthenticationException('Access denied: user must have at least one active access profile.');
-        }
+        // NOTE: access profile validation is handled by IAM server. Client-side
+        // package should not enforce `hasActiveAccessProfiles()` because user model
+        // in client apps typically does not implement that method.
         // ------------------------------------------------------------------------------
 
         $guardInstance->login($user, true);
@@ -112,13 +105,43 @@ class IamClientManager
             ]);
         }
 
+        // Extract and store token expiry information
+        $expiryInfo = TokenExpiryManager::extractExpiry($token);
+        if ($expiryInfo) {
+            Session::put('iam.token_exp_at', $expiryInfo['exp_at']);
+            Session::put('iam.token_expires_seconds', $expiryInfo['remaining_seconds']);
+            Session::put('iam.token_expires_minutes', $expiryInfo['remaining_minutes']);
+
+            Log::info('Token expiry information stored in session', [
+                'token_exp_at' => $expiryInfo['exp_at'],
+                'remaining_minutes' => $expiryInfo['remaining_minutes'],
+                'session_id' => session()->getId(),
+            ]);
+
+            // Optionally: dynamically extend session lifetime to match token TTL
+            if (config('iam.sync_session_lifetime', true)) {
+                $sessionLifetime = TokenExpiryManager::calculateSessionLifetime($token);
+                if ($sessionLifetime) {
+                    // Store the dynamically calculated session lifetime
+                    Session::put('iam.session_lifetime', $sessionLifetime);
+                    Log::info('Session lifetime synced with token expiry', [
+                        'session_lifetime_minutes' => $sessionLifetime,
+                        'session_id' => session()->getId(),
+                    ]);
+                }
+            }
+        }
+
         Session::put('iam.payload', $payload);
-        Session::put('iam', [
+
+        // Preserve existing nested IAM keys (e.g. iam.access_token) and update only identity payload fields.
+        $existingIamSession = Session::get('iam', []);
+        Session::put('iam', array_merge($existingIamSession, [
             'sub' => $payload['sub'] ?? null,
             'app' => $payload['app'] ?? null,
             'roles' => $payload['roles'] ?? [],
             'perms' => $payload['perms'] ?? [],
-        ]);
+        ]));
 
         $iamSession = session('iam');
 

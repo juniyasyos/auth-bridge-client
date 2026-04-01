@@ -170,7 +170,7 @@ return [
     'user_fields' => [
         'iam_id' => 'sub',        // Required: JWT sub maps to iam_id
         'name' => 'name',
-        // 'email' => 'email',
+        'email' => 'email',
         // Add custom mappings:
         'nip' => 'nip',
         // 'nik' => 'nik',
@@ -286,6 +286,20 @@ return [
     |
     */
     'role_sync_mode' => env('IAM_ROLE_SYNC_MODE', 'pull'),
+
+    /*
+    |------------------------------------------------------------------------
+    | User synchronization mode
+    |------------------------------------------------------------------------
+    |
+    | Mode determines direction of user sync between IAM and IAM server.
+    | * pull: IAM server pulls users from client (existing behavior)
+    | * push: IAM server pushes users to client using /api/iam/push-users.
+    */
+    'user_sync_mode' => env('IAM_USER_SYNC_MODE', 'pull'),
+
+    'user_sync_from_iam_allow_create' => env('IAM_USER_SYNC_FROM_IAM_ALLOW_CREATE', true),
+    'user_sync_from_iam_delete_missing' => env('IAM_USER_SYNC_FROM_IAM_DELETE_MISSING', false),
 
     /*
     |------------------------------------------------------------------------

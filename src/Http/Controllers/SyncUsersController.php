@@ -5,6 +5,7 @@ namespace Juniyasyos\IamClient\Http\Controllers;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
+use Illuminate\Support\Facades\Log;
 use Juniyasyos\IamClient\Support\IamConfig;
 
 class SyncUsersController extends Controller
@@ -44,14 +45,29 @@ class SyncUsersController extends Controller
         $userModel = config('iam.user_model', \App\Models\User::class);
         $fields = config('iam.user_fields', []);
 
+        if (! array_key_exists('email', $fields)) {
+            // If email is not part of sync mapping the IAM server will get
+            // null for email on newly created users.
+            Log::warning('iam.sync_users_email_field_missing', [
+                'configured_fields' => array_keys($fields),
+            ]);
+        }
+
         $users = $userModel::query()
             ->get()
             ->map(function ($user) use ($fields) {
                 $item = [];
 
                 foreach ($fields as $column => $claim) {
-                    if (isset($user->{$column})) {
-                        $item[$column] = $user->{$column};
+                    // Always include configured fields (even when null) to avoid
+                    // losing values during hourly sync comparisons.
+                    $item[$column] = $user->{$column} ?? null;
+                }
+
+                // Do a forced baseline for core fields.
+                foreach (['nip', 'email', 'name', 'active'] as $core) {
+                    if (! isset($item[$core])) {
+                        $item[$core] = $user->{$core} ?? null;
                     }
                 }
 

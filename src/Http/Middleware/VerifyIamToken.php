@@ -5,6 +5,7 @@ namespace Juniyasyos\IamClient\Http\Middleware;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Juniyasyos\IamClient\Support\IamConfig;
@@ -22,15 +23,57 @@ class VerifyIamToken
             return $next($request);
         }
 
-        $accessToken = $request->session()->get('iam.access_token');
+        $accessToken = $request->session()->get('iam.access_token')
+            ?? $request->session()->get('iam.access_token_backup');
 
         if (empty($accessToken)) {
+            // Strict mode: if user is authenticated by IAM payload but token is missing,
+            // force relogin to avoid stale web-session without valid IAM token.
+            if (Auth::check() && $request->session()->has('iam.sub')) {
+                Log::warning('IamClient::VerifyIamToken - authenticated session without IAM token; clearing session', [
+                    'session_id' => $request->session()->getId(),
+                    'user_id' => Auth::id(),
+                ]);
+
+                Auth::logout();
+                $request->session()->invalidate();
+                $request->session()->regenerateToken();
+                $request->session()->forget('iam');
+
+                if ($request->wantsJson() || $request->ajax()) {
+                    return response()->json(['message' => 'Session expired, please login again.'], 401);
+                }
+
+                $loginRoute = IamConfig::loginRouteName(config('iam.guard', 'web'));
+
+                if (\Illuminate\Support\Facades\Route::has($loginRoute)) {
+                    return redirect()->route($loginRoute)->with('warning', 'Session expired, please login again.');
+                }
+
+                return redirect()->to(config('iam.login_route', '/sso/login'))->with('warning', 'Session expired, please login again.');
+            }
+
             return $next($request);
         }
 
         // Prefer local JWT verification to avoid network roundtrips
         try {
             $payload = \Juniyasyos\IamClient\Support\TokenValidator::decode($accessToken);
+
+            if (Cache::has('iam.user_logout.' . ($payload->sub ?? null))) {
+                Log::warning('IamClient::VerifyIamToken - user logged out via backchannel', [
+                    'user_id' => $payload->sub ?? null,
+                    'session_id' => $request->session()->getId(),
+                ]);
+
+                Auth::logout();
+                $request->session()->invalidate();
+                $request->session()->regenerateToken();
+                $request->session()->forget('iam');
+
+                return redirect()->route(IamConfig::loginRouteName(config('iam.guard', 'web')))
+                    ->with('warning', 'Your session was revoked by IAM. Please login again.');
+            }
 
             // keep session payload in sync
             $request->session()->put('iam.payload', (array) $payload);

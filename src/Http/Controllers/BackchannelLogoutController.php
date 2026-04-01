@@ -4,8 +4,12 @@ namespace Juniyasyos\IamClient\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Redis;
+use Illuminate\Support\Facades\Session;
 
 class BackchannelLogoutController extends Controller
 {
@@ -22,9 +26,11 @@ class BackchannelLogoutController extends Controller
 
         $userId = data_get($data, 'user.id');
 
-        // Best‑effort: delete DB sessions when using "database" driver
+        // Best‑effort: delete sessions for various supported drivers.
         try {
-            if (config('session.driver') === 'database') {
+            $driver = config('session.driver');
+
+            if ($driver === 'database') {
                 $deleted = DB::table('sessions')
                     ->where('payload', 'like', '%"user_id";i:' . $userId . '%')
                     ->delete();
@@ -32,7 +38,56 @@ class BackchannelLogoutController extends Controller
                 Log::info('iam.client.backchannel_session_cleanup', [
                     'user_id' => $userId,
                     'deleted_sessions' => $deleted,
-                    'request_id' => $request->header('X-IAM-Request-Id'),
+                    'driver' => $driver,
+                ]);
+            }
+
+            if ($driver === 'file') {
+                $files = glob(storage_path('framework/sessions/*')) ?: [];
+
+                $deleted = 0;
+                foreach ($files as $file) {
+                    if (! is_file($file)) {
+                        continue;
+                    }
+
+                    if (str_contains(file_get_contents($file), '"user_id";i:' . $userId)) {
+                        unlink($file);
+                        $deleted++;
+                    }
+                }
+
+                Log::info('iam.client.backchannel_session_cleanup', [
+                    'user_id' => $userId,
+                    'deleted_sessions' => $deleted,
+                    'driver' => $driver,
+                ]);
+            }
+
+            if (
+                in_array($driver, ['redis', 'memcached']) &&
+                (Cache::getStore() instanceof \Illuminate\Cache\RedisStore || Cache::getStore() instanceof \Illuminate\Cache\MemcachedStore)
+            ) {
+                $pattern = '*';
+                try {
+                    $keys = Redis::keys(config('cache.prefix') . ':*');
+                } catch (\Throwable $e) {
+                    $keys = [];
+                }
+
+                $deleted = 0;
+                foreach ($keys as $key) {
+                    $val = Redis::get($key);
+                    if ($val && str_contains($val, '"user_id";i:' . $userId)) {
+                        Redis::del($key);
+                        $deleted++;
+                    }
+                }
+
+                Log::info('iam.client.backchannel_session_cleanup', [
+                    'user_id' => $userId,
+                    'deleted_sessions' => $deleted,
+                    'driver' => $driver,
                 ]);
             }
         } catch (\Throwable $e) {
@@ -68,6 +123,17 @@ class BackchannelLogoutController extends Controller
             'revoked_tokens' => $revokedTokens,
             'request_id' => $request->header('X-IAM-Request-Id'),
         ]);
+
+        // Mark user as invalidated so per-request verification middleware can kick out still-active sessions.
+        Cache::put('iam.user_logout.' . $userId, true, now()->addMinutes(30));
+
+        // If this request belongs to an authenticated session of the same user,
+        // reset it immediately.
+        if (optional(auth()->user())->getAuthIdentifier() == $userId) {
+            auth()->logout();
+            Session::invalidate();
+            Session::regenerateToken();
+        }
 
         return response()->json(['ok' => true]);
     }

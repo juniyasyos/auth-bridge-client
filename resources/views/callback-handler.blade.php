@@ -5,120 +5,202 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>Processing Login...</title>
+    <title>Authentication Processing</title>
+
     <style>
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            margin: 0;
-            padding: 20px;
+        :root {
+            --primary: #4f46e5;
+            --primary-dark: #4338ca;
+            --success: #16a34a;
+            --danger: #dc2626;
+            --gray: #6b7280;
+            --bg: #f3f4f6;
         }
 
-        .container {
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            background: linear-gradient(135deg, #4f46e5, #7c3aed);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+        }
+
+        .card {
             background: white;
-            border-radius: 12px;
-            padding: 40px;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            padding: 36px;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+            width: 100%;
+            max-width: 420px;
             text-align: center;
-            max-width: 400px;
+            animation: fadeIn 0.4s ease;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .logo {
+            font-size: 14px;
+            color: var(--gray);
+            margin-bottom: 10px;
         }
 
         .spinner {
-            width: 50px;
-            height: 50px;
-            margin: 0 auto 20px;
-            border: 4px solid #f3f3f3;
-            border-top: 4px solid #667eea;
+            width: 48px;
+            height: 48px;
+            border: 4px solid #e5e7eb;
+            border-top: 4px solid var(--primary);
             border-radius: 50%;
-            animation: spin 1s linear infinite;
+            margin: 20px auto;
+            animation: spin 0.8s linear infinite;
         }
 
         @keyframes spin {
-            0% {
-                transform: rotate(0deg);
-            }
-
-            100% {
+            to {
                 transform: rotate(360deg);
             }
         }
 
         h2 {
-            color: #333;
-            margin: 0 0 10px;
-            font-size: 24px;
+            margin: 0;
+            font-size: 22px;
+            color: #111827;
         }
 
         p {
-            color: #666;
-            margin: 0;
-            line-height: 1.6;
+            color: var(--gray);
+            font-size: 14px;
+            margin-top: 8px;
         }
 
-        .error {
-            background: #fee;
-            border: 1px solid #fcc;
-            border-radius: 8px;
-            padding: 20px;
-            margin-top: 20px;
+        .status {
+            font-size: 13px;
+            margin-top: 16px;
+            color: var(--gray);
+        }
+
+        .error-box {
             display: none;
+            margin-top: 20px;
+            text-align: left;
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            border-radius: 10px;
+            padding: 16px;
         }
 
-        .error h3 {
-            color: #c33;
-            margin: 0 0 10px;
+        .error-title {
+            font-weight: 600;
+            color: var(--danger);
+            margin-bottom: 6px;
         }
 
-        .error p {
-            color: #c33;
+        .error-text {
+            font-size: 13px;
+            color: #7f1d1d;
         }
 
-        .error a {
-            display: inline-block;
-            margin-top: 15px;
-            padding: 10px 20px;
-            background: #667eea;
-            color: white;
+        .actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 16px;
+        }
+
+        .btn {
+            flex: 1;
+            padding: 10px;
+            border-radius: 8px;
             text-decoration: none;
-            border-radius: 6px;
-            transition: background 0.3s;
+            text-align: center;
+            font-size: 13px;
+            font-weight: 500;
+            transition: 0.2s;
         }
 
-        .error a:hover {
-            background: #5568d3;
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-dark);
+        }
+
+        .btn-secondary {
+            background: #e5e7eb;
+            color: #111827;
+        }
+
+        .btn-secondary:hover {
+            background: #d1d5db;
+        }
+
+        pre {
+            font-size: 12px;
+            background: #fff;
+            padding: 10px;
+            border-radius: 6px;
+            overflow: auto;
         }
     </style>
 </head>
 
 <body>
-    <div class="container">
-        <div class="spinner" @if(isset($serverError)) style="display:none" @endif></div>
-        <h2 @if(isset($serverError)) style="display:none" @endif>🔄 Processing Login</h2>
-        <p @if(isset($serverError)) style="display:none" @endif>Please wait while we complete your authentication...</p>
 
-        <div class="error" id="errorMessage" @if(isset($serverError)) style="display:block" @endif>
-            <h3>❌ Authentication Failed</h3>
-            <p id="errorText">@if(isset($serverError)) {{ $serverError }} @else No access token found in URL @endif</p>
+    <div class="card">
+        <div class="logo">SSO Authentication</div>
 
-            @if(isset($serverErrorContext) && is_array($serverErrorContext) && count($serverErrorContext) > 0)
-            <div class="error-details" style="margin-top:10px; text-align:left; background:#fff5f5; border:1px solid #f7d3d7; border-radius:8px; padding:12px; color:#a33;">
-                <strong>Detail kesalahan:</strong>
-                <pre style="white-space:pre-wrap; word-break:break-word; margin:8px 0 0;">{{ json_encode($serverErrorContext, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) }}</pre>
+        <div class="spinner" id="spinner" @if(isset($serverError)) style="display:none" @endif></div>
+
+        <h2 id="title" @if(isset($serverError)) style="display:none" @endif>
+            Signing you in...
+        </h2>
+
+        <p id="subtitle" @if(isset($serverError)) style="display:none" @endif>
+            Please wait while we securely authenticate your account.
+        </p>
+
+        <div class="status" id="statusText" @if(isset($serverError)) style="display:none" @endif>
+            Processing token...
+        </div>
+
+        <div class="error-box" id="errorBox" @if(isset($serverError)) style="display:block" @endif>
+            <div class="error-title">Authentication Failed</div>
+
+            <div class="error-text" id="errorText">
+                @if(isset($serverError))
+                {{ $serverError }}
+                @else
+                No access token found in URL
+                @endif
             </div>
+
+            @if(isset($serverErrorContext))
+            <pre>{{ json_encode($serverErrorContext, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) }}</pre>
             @endif
 
-            <div style="margin-top:12px; display:flex; gap:8px; justify-content:center;">
-                @if (\Illuminate\Support\Facades\Route::has(config('iam.login_route_name', 'login')))
-                <a href="{{ route(config('iam.login_route_name', 'login')) }}">Try Again</a>
-                @else
-                <a href="{{ url(config('iam.login_route', '/sso/login')) }}">Try Again</a>
-                @endif
-
-                <a href="/" style="background:#6b7280">Return home</a>
+            <div class="actions">
+                <a href="{{ route(config('iam.login_route_name', 'login')) }}" class="btn btn-primary">
+                    Retry Login
+                </a>
+                <a href="/" class="btn btn-secondary">
+                    Home
+                </a>
             </div>
         </div>
     </div>
@@ -126,70 +208,58 @@
     @unless(isset($serverError))
     <script>
         (function() {
-            console.log('IAM Callback Handler: Starting token extraction...');
+            const statusText = document.getElementById('statusText');
 
-            // Try to extract access_token from URL fragment (#access_token=xxx)
+            statusText.innerText = "Reading authentication data...";
+
             const hash = window.location.hash.substring(1);
-            console.log('Hash:', hash);
-
             const params = new URLSearchParams(hash);
             let accessToken = params.get('access_token');
 
-            // Also try query string as fallback
             if (!accessToken) {
+                statusText.innerText = "Checking alternative source...";
                 const queryParams = new URLSearchParams(window.location.search);
                 accessToken = queryParams.get('access_token');
-                console.log('Token from query string:', accessToken ? 'found' : 'not found');
             }
 
             if (accessToken) {
-                console.log('Access token found, submitting to server...');
-                console.log('Token length:', accessToken.length);
-                console.log('Token preview:', accessToken.substring(0, 50) + '...');
+                statusText.innerText = "Validating token...";
 
-                // Send token via POST to callback endpoint
                 const form = document.createElement('form');
                 form.method = 'POST';
                 form.action = '{{ route("iam.sso.callback") }}';
 
-                const tokenInput = document.createElement('input');
-                tokenInput.type = 'hidden';
-                tokenInput.name = 'token';
-                tokenInput.value = accessToken;
-                form.appendChild(tokenInput);
+                const fields = {
+                    token: accessToken,
+                    access_token: accessToken,
+                    _token: '{{ csrf_token() }}'
+                };
 
-                const legacyInput = document.createElement('input');
-                legacyInput.type = 'hidden';
-                legacyInput.name = 'access_token';
-                legacyInput.value = accessToken;
-                form.appendChild(legacyInput);
-
-                const csrfInput = document.createElement('input');
-                csrfInput.type = 'hidden';
-                csrfInput.name = '_token';
-                csrfInput.value = '{{ csrf_token() }}';
-                form.appendChild(csrfInput);
+                Object.entries(fields).forEach(([key, value]) => {
+                    const input = document.createElement('input');
+                    input.type = 'hidden';
+                    input.name = key;
+                    input.value = value;
+                    form.appendChild(input);
+                });
 
                 document.body.appendChild(form);
 
-                // Submit after a small delay to ensure DOM is ready
                 setTimeout(() => {
-                    console.log('Submitting form...');
+                    statusText.innerText = "Signing you in...";
                     form.submit();
-                }, 100);
+                }, 300);
             } else {
-                console.error('No access token found in URL');
-                console.log('Full URL:', window.location.href);
-
-                // Show error message
-                document.querySelector('.spinner').style.display = 'none';
-                document.querySelector('h2').style.display = 'none';
-                document.querySelector('p').style.display = 'none';
-                document.getElementById('errorMessage').style.display = 'block';
+                document.getElementById('spinner').style.display = 'none';
+                document.getElementById('title').style.display = 'none';
+                document.getElementById('subtitle').style.display = 'none';
+                document.getElementById('statusText').style.display = 'none';
+                document.getElementById('errorBox').style.display = 'block';
             }
         })();
     </script>
     @endunless
+
 </body>
 
 </html>

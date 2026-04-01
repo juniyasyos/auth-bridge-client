@@ -43,7 +43,14 @@ Route::middleware($middleware)->group(function () {
     // Incoming role sync from IAM to this client (IAM pushes authoritative role set)
     Route::post('/api/iam/push-roles', \Juniyasyos\IamClient\Http\Controllers\PushRolesController::class)
         ->name('iam.push-roles');
+
+    Route::post('/api/iam/push-users', \Juniyasyos\IamClient\Http\Controllers\PushUsersController::class)
+        ->name('iam.push-users');
 });
+
+// Health endpoint for IAM -> client check (bearer token or no-auth). Does not mutate state.
+Route::get('/api/iam/health', \Juniyasyos\IamClient\Http\Controllers\HealthController::class)
+    ->name('iam.health');
 
 Route::middleware('web')->group(function () {
     // Redirect to IAM login page
