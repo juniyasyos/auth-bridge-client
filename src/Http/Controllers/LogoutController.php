@@ -7,6 +7,7 @@ use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Route;
+use Juniyasyos\IamClient\Services\UserApplicationsService;
 use Juniyasyos\IamClient\Support\IamConfig;
 
 class LogoutController extends Controller
@@ -30,6 +31,10 @@ class LogoutController extends Controller
             'session_id' => $sessionId,
             'guard' => $guardName,
         ]);
+
+        // Clear application cache before logout
+        UserApplicationsService::clearUserAppCache($userId);
+        UserApplicationsService::clearSessionAppCache();
 
         $guardInstance->logout();
 

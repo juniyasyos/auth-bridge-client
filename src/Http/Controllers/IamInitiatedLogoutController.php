@@ -4,9 +4,10 @@ namespace Juniyasyos\IamClient\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
-use Illuminate\Support\Facades\Log;
-use Juniyasyos\IamClient\Support\IamConfig;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
+use Juniyasyos\IamClient\Services\UserApplicationsService;
+use Juniyasyos\IamClient\Support\IamConfig;
 
 class IamInitiatedLogoutController extends Controller
 {
@@ -32,6 +33,10 @@ class IamInitiatedLogoutController extends Controller
         if ($logoutOnOp) {
             $guardName = IamConfig::guardName($guard);
 
+            // Clear application cache before logout
+            UserApplicationsService::clearUserAppCache($currentUserId);
+            UserApplicationsService::clearSessionAppCache();
+
             // Full application logout (invalidate session + regenerate token)
             Auth::guard($guardName)->logout();
             $request->session()->invalidate();
@@ -51,6 +56,9 @@ class IamInitiatedLogoutController extends Controller
                 'iam_user',
                 'iam',
             ]);
+
+            // Clear session-level cache anyway
+            UserApplicationsService::clearSessionAppCache();
 
             // Regenerate CSRF token to reduce fixation risk
             $request->session()->regenerateToken();

@@ -3,6 +3,8 @@
 namespace Juniyasyos\IamClient\Services;
 
 use Illuminate\Http\Client\Response;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Juniyasyos\IamClient\Support\IamConfig;
@@ -204,10 +206,43 @@ class UserApplicationsService
             return $this->errorResponse('iam_token_missing', 'IAM access token not found in session', $endpoint);
         }
 
+        $userId = Auth::id() ?? session('iam.sub');
+        if (empty($userId)) {
+            return $this->errorResponse('user_not_identified', 'Unable to identify user for caching', $endpoint);
+        }
+
+        // Generate cache key
+        $cacheKey = $this->generateCacheKey($userId, $endpoint);
+
+        // Try: 1. User-level cache (30 min, shared across sessions)
+        $cached = Cache::get($cacheKey);
+        if ($cached !== null) {
+            Log::debug("UserApplicationsService: {$debugName} from user cache", [
+                'user_id' => $userId,
+                'cache_key' => $cacheKey,
+            ]);
+            return $cached;
+        }
+
+        // Try: 2. Session-level cache (5 min, current session only)
+        $sessionCacheKey = "iam:apps:session:" . session()->getId() . ":" . md5($endpoint);
+        $sessionCached = session($sessionCacheKey);
+        if ($sessionCached !== null) {
+            Log::debug("UserApplicationsService: {$debugName} from session cache", [
+                'session_id' => session()->getId(),
+                'endpoint' => $endpoint,
+            ]);
+            // Restore to user cache for other sessions
+            Cache::put($cacheKey, $sessionCached, 30 * 60);
+            return $sessionCached;
+        }
+
+        // Fallback: 3. Fetch from IAM server
         try {
             $url = IamConfig::baseUrl() . '/api' . $endpoint;
 
-            Log::info("UserApplicationsService: Fetching {$debugName}", [
+            Log::info("UserApplicationsService: Fetching {$debugName} from IAM server", [
+                'user_id' => $userId,
                 'session_id' => session()->getId(),
                 'endpoint' => $url,
             ]);
@@ -219,20 +254,26 @@ class UserApplicationsService
 
             if ($response->successful()) {
                 $payload = $response->json();
-                Log::info("UserApplicationsService: {$debugName} fetched successfully", [
+                $result = array_merge(['source' => 'iam-server'], (array) $payload);
+
+                // Cache in both layers
+                Cache::put($cacheKey, $result, 30 * 60);  // User cache: 30 min
+                session([$sessionCacheKey => $result]);     // Session cache: with session
+
+                Log::info("UserApplicationsService: {$debugName} fetched and cached", [
+                    'user_id' => $userId,
                     'status' => $response->status(),
-                    'session_id' => session()->getId(),
+                    'cache_ttl_minutes' => 30,
                 ]);
 
-                // Add source indicator
-                return array_merge(['source' => 'iam-server'], (array) $payload);
+                return $result;
             }
 
             Log::warning("UserApplicationsService: {$debugName} request failed", [
                 'endpoint' => $url,
                 'status' => $response->status(),
                 'body' => $response->body(),
-                'session_id' => session()->getId(),
+                'user_id' => $userId,
             ]);
 
             return $this->errorResponse(
@@ -245,6 +286,7 @@ class UserApplicationsService
             Log::error("UserApplicationsService: Exception calling IAM server", [
                 'endpoint' => $endpoint,
                 'message' => $e->getMessage(),
+                'user_id' => $userId,
                 'session_id' => session()->getId(),
                 'trace' => $e->getTraceAsString(),
             ]);
@@ -256,6 +298,66 @@ class UserApplicationsService
             );
         }
     }
+
+    /**
+     * Generate cache key for user-level application cache.
+     * 
+     * @param mixed $userId User ID
+     * @param string $endpoint Endpoint path
+     * @return string Cache key
+     */
+    private function generateCacheKey($userId, string $endpoint): string
+    {
+        return "iam:apps:user:{$userId}:" . md5($endpoint);
+    }
+
+    /**
+     * Clear application cache for a specific user.
+     * Call this on logout or permission change.
+     * 
+     * @param mixed $userId User ID (default: current auth user)
+     * @return void
+     */
+    public static function clearUserAppCache($userId = null): void
+    {
+        $userId = $userId ?? Auth::id();
+        if (empty($userId)) {
+            return;
+        }
+
+        // Clear both endpoints cache
+        $endpoints = ['/users/applications', '/users/applications/detail'];
+        foreach ($endpoints as $endpoint) {
+            $cacheKey = "iam:apps:user:{$userId}:" . md5($endpoint);
+            Cache::forget($cacheKey);
+        }
+
+        Log::info("UserApplicationsService: Application cache cleared for user", [
+            'user_id' => $userId,
+        ]);
+    }
+
+    /**
+     * Clear session-level application cache.
+     * Call this when switching sessions within same browser.
+     * 
+     * @return void
+     */
+    public static function clearSessionAppCache(): void
+    {
+        $sessionId = session()->getId();
+        $endpoints = ['/users/applications', '/users/applications/detail'];
+
+        foreach ($endpoints as $endpoint) {
+            $sessionCacheKey = "iam:apps:session:{$sessionId}:" . md5($endpoint);
+            session()->forget($sessionCacheKey);
+        }
+
+        Log::debug("UserApplicationsService: Session application cache cleared", [
+            'session_id' => $sessionId,
+        ]);
+    }
+
 
     /**
      * Internal: Debug fetch with raw response details.

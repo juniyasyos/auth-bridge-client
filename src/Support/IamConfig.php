@@ -86,6 +86,25 @@ class IamConfig
         return $host . '/api/users/applications';
     }
 
+    public static function refreshTokenEndpoint(): string
+    {
+        $explicit = (string) config('iam.refresh_token_endpoint');
+
+        if ($explicit) {
+            return $explicit;
+        }
+
+        $service = (string) config('services.iam.refresh_token');
+
+        if ($service) {
+            return $service;
+        }
+
+        $host = self::baseUrl();
+
+        return $host . '/api/sso/token/refresh';
+    }
+
     public static function appKey(): string
     {
         return (string) config('iam.app_key', 'client-app');

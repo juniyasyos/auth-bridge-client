@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Redis;
 use Illuminate\Support\Facades\Session;
+use Juniyasyos\IamClient\Services\UserApplicationsService;
 
 class BackchannelLogoutController extends Controller
 {
@@ -127,12 +128,16 @@ class BackchannelLogoutController extends Controller
         // Mark user as invalidated so per-request verification middleware can kick out still-active sessions.
         Cache::put('iam.user_logout.' . $userId, true, now()->addMinutes(30));
 
+        // Clear application cache for the user
+        UserApplicationsService::clearUserAppCache($userId);
+
         // If this request belongs to an authenticated session of the same user,
         // reset it immediately.
         if (optional(auth()->user())->getAuthIdentifier() == $userId) {
             auth()->logout();
             Session::invalidate();
             Session::regenerateToken();
+            UserApplicationsService::clearSessionAppCache();
         }
 
         return response()->json(['ok' => true]);

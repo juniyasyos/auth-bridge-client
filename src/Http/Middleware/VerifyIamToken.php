@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Juniyasyos\IamClient\Services\UserApplicationsService;
 use Juniyasyos\IamClient\Support\IamConfig;
 
 /**
@@ -30,10 +31,16 @@ class VerifyIamToken
             // Strict mode: if user is authenticated by IAM payload but token is missing,
             // force relogin to avoid stale web-session without valid IAM token.
             if (Auth::check() && $request->session()->has('iam.sub')) {
+                $userId = Auth::id();
+
                 Log::warning('IamClient::VerifyIamToken - authenticated session without IAM token; clearing session', [
                     'session_id' => $request->session()->getId(),
-                    'user_id' => Auth::id(),
+                    'user_id' => $userId,
                 ]);
+
+                // Clear application cache
+                UserApplicationsService::clearUserAppCache($userId);
+                UserApplicationsService::clearSessionAppCache();
 
                 Auth::logout();
                 $request->session()->invalidate();
@@ -61,10 +68,16 @@ class VerifyIamToken
             $payload = \Juniyasyos\IamClient\Support\TokenValidator::decode($accessToken);
 
             if (Cache::has('iam.user_logout.' . ($payload->sub ?? null))) {
+                $userId = $payload->sub ?? null;
+
                 Log::warning('IamClient::VerifyIamToken - user logged out via backchannel', [
-                    'user_id' => $payload->sub ?? null,
+                    'user_id' => $userId,
                     'session_id' => $request->session()->getId(),
                 ]);
+
+                // Clear application cache
+                UserApplicationsService::clearUserAppCache($userId);
+                UserApplicationsService::clearSessionAppCache();
 
                 Auth::logout();
                 $request->session()->invalidate();
@@ -79,10 +92,42 @@ class VerifyIamToken
             $request->session()->put('iam.payload', (array) $payload);
             $request->session()->put('iam.sub', $payload->sub ?? null);
         } catch (\Throwable $e) {
-            Log::warning('IamClient::VerifyIamToken - token invalid; clearing session', [
+            Log::warning('IamClient::VerifyIamToken - token invalid, attempting silent refresh', [
                 'error' => $e->getMessage(),
                 'session_id' => $request->session()->getId(),
             ]);
+
+            // Try to silently refresh the token before logging out
+            $refreshedToken = $this->attemptSilentRefresh($accessToken);
+            if ($refreshedToken) {
+                // Update session with new token and continue request
+                $request->session()->put('iam.access_token', $refreshedToken);
+                try {
+                    $payload = \Juniyasyos\IamClient\Support\TokenValidator::decode($refreshedToken);
+                    $request->session()->put('iam.payload', (array) $payload);
+                    $request->session()->put('iam.sub', $payload->sub ?? null);
+
+                    Log::info('IamClient::VerifyIamToken - silent token refresh successful', [
+                        'session_id' => $request->session()->getId(),
+                    ]);
+
+                    return $next($request);
+                } catch (\Throwable $decodeErr) {
+                    Log::warning('IamClient::VerifyIamToken - refreshed token decode failed', [
+                        'error' => $decodeErr->getMessage(),
+                    ]);
+                }
+            }
+
+            // If refresh failed, logout and redirect
+            Log::warning('IamClient::VerifyIamToken - silent refresh failed, clearing session', [
+                'error' => $e->getMessage(),
+                'session_id' => $request->session()->getId(),
+            ]);
+
+            $userId = Auth::id();
+            UserApplicationsService::clearUserAppCache($userId);
+            UserApplicationsService::clearSessionAppCache();
 
             Auth::logout();
             $request->session()->invalidate();
@@ -139,5 +184,35 @@ class VerifyIamToken
         }
 
         return $next($request);
+    }
+
+    /**
+     * Attempt to silently refresh the expired token.
+     * Returns refreshed token on success, null on failure.
+     */
+    private function attemptSilentRefresh(?string $expiredToken): ?string
+    {
+        if (empty($expiredToken)) {
+            return null;
+        }
+
+        try {
+            $response = Http::timeout(3)->post(IamConfig::refreshTokenEndpoint(), [
+                'token' => $expiredToken,
+            ]);
+
+            if ($response->successful()) {
+                $data = $response->json();
+                if (isset($data['access_token'])) {
+                    return $data['access_token'];
+                }
+            }
+        } catch (\Throwable $e) {
+            Log::debug('IamClient::VerifyIamToken - silent refresh request failed', [
+                'error' => $e->getMessage(),
+            ]);
+        }
+
+        return null;
     }
 }
