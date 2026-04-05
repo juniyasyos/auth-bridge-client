@@ -90,6 +90,14 @@ class VerifyIamBackchannelSignature
             ? 'config'
             : (! empty($appSecret) ? 'database' : 'none');
 
+        // Decode base64-encoded secrets (Laravel convention: base64:xxxxx)
+        if (! empty($secret) && is_string($secret) && str_starts_with($secret, 'base64:')) {
+            $decoded = base64_decode(substr($secret, 7), true);
+            if ($decoded !== false) {
+                $secret = $decoded;
+            }
+        }
+
         // Verify against primary secret, then fallback to alternate one for compatibility.
         $validSignature = false;
         $expectedSignature = null;
@@ -100,7 +108,15 @@ class VerifyIamBackchannelSignature
         }
 
         if (! $validSignature && ! empty($globalSecret) && ! empty($appSecret)) {
-            $alternateExpectedSignature = hash_hmac('sha256', $body, $appSecret);
+            $appSecretForAlt = $appSecret;
+            // Also decode appSecret if it's base64-encoded
+            if (is_string($appSecretForAlt) && str_starts_with($appSecretForAlt, 'base64:')) {
+                $decoded = base64_decode(substr($appSecretForAlt, 7), true);
+                if ($decoded !== false) {
+                    $appSecretForAlt = $decoded;
+                }
+            }
+            $alternateExpectedSignature = hash_hmac('sha256', $body, $appSecretForAlt);
             if (hash_equals($alternateExpectedSignature, $signature)) {
                 $validSignature = true;
                 $secretSource = 'database';

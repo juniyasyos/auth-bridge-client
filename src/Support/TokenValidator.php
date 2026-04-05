@@ -22,6 +22,15 @@ class TokenValidator
             throw new \UnexpectedValueException('JWT secret not configured.');
         }
 
+        // Decode base64-encoded secrets (Laravel convention: base64:xxxxx)
+        if (is_string($secret) && str_starts_with($secret, 'base64:')) {
+            $decoded = base64_decode(substr($secret, 7), true);
+            if ($decoded === false) {
+                throw new \UnexpectedValueException('Invalid base64-encoded JWT secret.');
+            }
+            $secret = $decoded;
+        }
+
         if ($leeway > 0) {
             JWT::$leeway = $leeway;
         }

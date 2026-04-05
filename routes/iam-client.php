@@ -37,7 +37,7 @@ Route::middleware($middleware)->group(function () {
             ->name('iam.sync-users');
     }
 
-    Route::match(['GET', 'POST'], '/api/iam/sync-roles', SyncRolesController::class)
+    Route::get('/api/iam/sync-roles', SyncRolesController::class)
         ->name('iam.sync-roles');
 
     // Incoming role sync from IAM to this client (IAM pushes authoritative role set)
