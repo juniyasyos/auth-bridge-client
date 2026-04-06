@@ -37,10 +37,13 @@ class TokenValidator
 
         $decoded = JWT::decode($token, new Key($secret, $algo));
 
-        // Optional issuer check
+        // Optional issuer check with normalization (localhost/127.0.0.1 equivalence)
         $expectedIss = config('iam.issuer');
-        if ($expectedIss && (! property_exists($decoded, 'iss') || (string) $decoded->iss !== (string) $expectedIss)) {
-            throw new \UnexpectedValueException('Invalid token issuer.');
+        if ($expectedIss) {
+            $tokenIss = property_exists($decoded, 'iss') ? (string) $decoded->iss : null;
+            if (!$tokenIss || !self::isValidIssuer($tokenIss, $expectedIss)) {
+                throw new \UnexpectedValueException('Invalid token issuer.');
+            }
         }
 
         // Optional audience check (fallback to app_key when audience not set)
@@ -61,5 +64,34 @@ class TokenValidator
         }
 
         return $decoded;
+    }
+
+    /**
+     * Check if token issuer is valid with flexible issuer comparison.
+     * Treats localhost and 127.0.0.1 as equivalent for development/testing.
+     */
+    private static function isValidIssuer(string $tokenIss, string $expectedIss): bool
+    {
+        // Direct match
+        if ($tokenIss === $expectedIss) {
+            return true;
+        }
+
+        // Normalize localhost/127.0.0.1 for comparison
+        $normalizedToken = self::normalizeIssuer($tokenIss);
+        $normalizedExpected = self::normalizeIssuer($expectedIss);
+        return $normalizedToken === $normalizedExpected;
+    }
+
+    /**
+     * Normalize issuer for comparison (localhost ↔ 127.0.0.1).
+     */
+    private static function normalizeIssuer(string $issuer): string
+    {
+        return str_replace(
+            ['http://localhost:', 'https://localhost:'],
+            ['http://127.0.0.1:', 'https://127.0.0.1:'],
+            $issuer
+        );
     }
 }
