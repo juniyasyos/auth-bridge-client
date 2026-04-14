@@ -259,7 +259,13 @@ class IamUserProvisioner
 
         $roles = array_filter(array_map(function ($role) {
             if (is_array($role)) {
-                return $role['slug'] ?? $role['name'] ?? null;
+                // Always use slug if available, NEVER use display name directly
+                $slug = $role['slug'] ?? null;
+                if (!$slug && isset($role['name'])) {
+                    // Convert display name to slug format (lowercase, replace spaces/hyphens with underscore)
+                    $slug = strtolower(preg_replace('/[\s\-]+/', '_', $role['name']));
+                }
+                return $slug;
             }
 
             return is_string($role) ? $role : null;
