@@ -8,7 +8,7 @@ Package Laravel untuk integrasi Single Sign-On (SSO) dengan IAM server menggunak
 - ✅ **Guard-aware SSO Routes** – Jalankan beberapa guard sekaligus (web/Filament/dsb)
 - ✅ **OP‑initiated logout (`/iam/logout`)** – Public endpoint tersedia; IAM dapat mengarahkan browser ke `/iam/logout` (mendukung `post_logout_redirect`).
 
-  Configuration: `logout_on_op_initiated` (default: `true`) — when enabled the plugin will perform a full `auth()->logout()` and invalidate the session when receiving an OP‑initiated logout. Set to `false` to preserve the legacy behaviour of only clearing IAM-related session keys.
+  This package always performs a full `auth()->logout()` and session invalidation when receiving an OP‑initiated logout.
 - ✅ **JIT User Provisioning** – User otomatis dibuat/update sesuai mapping
 - ✅ **JWT Token Verification** – Validasi token via endpoint IAM
 - ✅ **Role Synchronization** – Sinkronisasi role ke Spatie Permission (opsional)
@@ -95,20 +95,11 @@ Route::middleware(['iam.verify', 'iam.auth:web'])->group(function () {
 
 Untuk API yang meminta JSON, middleware akan mengembalikan respons `401` berformat JSON ketika token tidak valid.
 
-#### Back‑channel / OP‑initiated logout
+#### OP‑initiated logout
 
-Gunakan `iam.backchannel.verify` pada endpoint yang menerima notifikasi dari IAM (memverifikasi HMAC SHA256).
-
-> **Development tip:** jika Anda tidak memerlukan keamanan sama sekali, set
-> `IAM_BACKCHANNEL_VERIFY=false`.  Rute back‑channel dan sinkronisasi akan
-tetap tersedia, tetapi middleware verifikasi tidak akan dipasang sehingga
-semua request diterima.
-
-
-```php
-Route::post('/iam/backchannel', [\Juniyasyos\IamClient\Http\Controllers\BackchannelLogoutController::class, 'handle'])
-    ->middleware('iam.backchannel.verify');
-```
+The client package exposes a public logout endpoint at `/iam/logout` for
+browser-based logout requests initiated by the IAM server. The package no longer
+includes a separate `POST /iam/backchannel` logout route.
 
 ### Sync endpoints
 

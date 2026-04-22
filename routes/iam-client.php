@@ -87,12 +87,6 @@ Route::middleware('web')->group(function () {
         ->name('iam.user-applications.debug')
         ->middleware(['web', 'auth'])
         ->defaults('guard', 'web');
-
-    // OP → client back‑channel logout (server→server). Verifies HMAC signature.
-    Route::post('/iam/backchannel-logout', \Juniyasyos\IamClient\Http\Controllers\BackchannelLogoutController::class)
-        ->name('iam.backchannel.logout')
-        ->middleware('iam.backchannel.verify')
-        ->defaults('guard', 'web');
 });
 
 if (IamConfig::filamentEnabled() && class_exists('Filament\\Facades\\Filament')) {

@@ -67,38 +67,23 @@ class VerifyIamToken
         try {
             $payload = \Juniyasyos\IamClient\Support\TokenValidator::decode($accessToken);
 
-            if (Cache::has('iam.user_logout.' . ($payload->sub ?? null))) {
-                $userId = $payload->sub ?? null;
-
-                Log::warning('IamClient::VerifyIamToken - user logged out via backchannel', [
-                    'user_id' => $userId,
-                    'session_id' => $request->session()->getId(),
-                ]);
-
-                // Clear application cache
-                UserApplicationsService::clearUserAppCache($userId);
-                UserApplicationsService::clearSessionAppCache();
-
-                Auth::logout();
-                $request->session()->invalidate();
-                $request->session()->regenerateToken();
-                $request->session()->forget('iam');
-
-                return redirect()->route(IamConfig::loginRouteName(config('iam.guard', 'web')))
-                    ->with('warning', 'Your session was revoked by IAM. Please login again.');
-            }
-
             // keep session payload in sync
             $request->session()->put('iam.payload', (array) $payload);
             $request->session()->put('iam.sub', $payload->sub ?? null);
         } catch (\Throwable $e) {
-            Log::warning('IamClient::VerifyIamToken - token invalid, attempting silent refresh', [
+            $message = strtolower($e->getMessage());
+
+            Log::warning('IamClient::VerifyIamToken - token invalid, attempting silent refresh if expired', [
                 'error' => $e->getMessage(),
                 'session_id' => $request->session()->getId(),
             ]);
 
-            // Try to silently refresh the token before logging out
-            $refreshedToken = $this->attemptSilentRefresh($accessToken);
+            $refreshedToken = null;
+            if (str_contains($message, 'expired')) {
+                // Only attempt refresh when token is explicitly expired.
+                $refreshedToken = $this->attemptSilentRefresh($accessToken);
+            }
+
             if ($refreshedToken) {
                 // Update session with new token and continue request
                 $request->session()->put('iam.access_token', $refreshedToken);
@@ -119,8 +104,8 @@ class VerifyIamToken
                 }
             }
 
-            // If refresh failed, logout and redirect
-            Log::warning('IamClient::VerifyIamToken - silent refresh failed, clearing session', [
+            // If refresh was not attempted or failed, logout and redirect
+            Log::warning('IamClient::VerifyIamToken - silent refresh failed or skipped, clearing session', [
                 'error' => $e->getMessage(),
                 'session_id' => $request->session()->getId(),
             ]);

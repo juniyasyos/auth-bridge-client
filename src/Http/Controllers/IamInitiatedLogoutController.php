@@ -27,42 +27,22 @@ class IamInitiatedLogoutController extends Controller
             'request_id' => $request->query('request_id') ?? $request->header('X-IAM-Request-Id'),
         ]);
 
-        // Configurable behaviour: perform full logout on OP‑initiated
-        $logoutOnOp = (bool) config('iam.logout_on_op_initiated', true);
+        $guardName = IamConfig::guardName($guard);
 
-        if ($logoutOnOp) {
-            $guardName = IamConfig::guardName($guard);
+        // Always perform full logout on OP‑initiated logout.
+        UserApplicationsService::clearUserAppCache($currentUserId);
+        UserApplicationsService::clearSessionAppCache();
 
-            // Clear application cache before logout
-            UserApplicationsService::clearUserAppCache($currentUserId);
-            UserApplicationsService::clearSessionAppCache();
+        Auth::guard($guardName)->logout();
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
+        $request->session()->forget('iam');
 
-            // Full application logout (invalidate session + regenerate token)
-            Auth::guard($guardName)->logout();
-            $request->session()->invalidate();
-            $request->session()->regenerateToken();
-
-            Log::info('OP‑initiated logout: full_logout_performed', [
-                'guard' => $guardName,
-                'previous_user_id' => $currentUserId,
-                'request_id' => $request->query('request_id') ?? $request->header('X-IAM-Request-Id'),
-            ]);
-        } else {
-            // Backward-compatible: only remove IAM-related session keys (non‑destructive)
-            session()->forget([
-                'iam_access_token',
-                'iam_refresh_token',
-                'iam_expires_at',
-                'iam_user',
-                'iam',
-            ]);
-
-            // Clear session-level cache anyway
-            UserApplicationsService::clearSessionAppCache();
-
-            // Regenerate CSRF token to reduce fixation risk
-            $request->session()->regenerateToken();
-        }
+        Log::info('OP‑initiated logout: full_logout_performed', [
+            'guard' => $guardName,
+            'previous_user_id' => $currentUserId,
+            'request_id' => $request->query('request_id') ?? $request->header('X-IAM-Request-Id'),
+        ]);
 
         // Allow OP to pass `post_logout_redirect` so IAM can continue the
         // logout chain. Only accept redirects back to IAM (`IamConfig::baseUrl()`).

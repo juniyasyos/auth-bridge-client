@@ -410,12 +410,12 @@ return [
     --------------------------------------------------------------------------
     |
     | Controls how the client responds to OP‑initiated (front‑channel) logout
-    | requests from the IAM server (`GET /iam/logout`). When true the client
-    | will perform a full `auth()->logout()` + session invalidation. If false
-    | the plugin will only remove IAM-related session keys (legacy behaviour).
+    | requests from the IAM server (`GET /iam/logout`). The package always
+    | performs a full `auth()->logout()` and invalidates the session on
+    | OP‑initiated logout. The legacy config key remains for compatibility.
     |
     */
-    'logout_on_op_initiated' => env('IAM_LOGOUT_ON_OP_INITIATED', true),
+    'logout_on_op_initiated' => true,
 
     /*
     --------------------------------------------------------------------------    | Login Route Name  
