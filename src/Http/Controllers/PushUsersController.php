@@ -109,7 +109,7 @@ class PushUsersController extends Controller
                 'nip' => $nip ?? null,
                 'email' => $email ?? null,
                 'name' => data_get($item, 'name'),
-                'active' => data_get($item, 'active'),
+                'status' => $this->resolveStatusValue($item, 'active'),
             ], function ($value) {
                 return $value !== null;
             });
@@ -271,5 +271,32 @@ class PushUsersController extends Controller
         }
 
         return [(string) $raw];
+    }
+
+    protected function resolveStatusValue(array $item): ?string
+    {
+        if (array_key_exists('status', $item) && $item['status'] !== null) {
+            return $item['status'];
+        }
+
+        if (! array_key_exists('active', $item)) {
+            return null;
+        }
+
+        $active = $item['active'];
+        if (is_bool($active)) {
+            return $active ? 'active' : 'inactive';
+        }
+
+        if (is_numeric($active)) {
+            return intval($active) === 1 ? 'active' : 'inactive';
+        }
+
+        $normalized = strtolower(trim((string) $active));
+        if (in_array($normalized, ['1', 'true', 'yes', 'active'], true)) {
+            return 'active';
+        }
+
+        return 'inactive';
     }
 }

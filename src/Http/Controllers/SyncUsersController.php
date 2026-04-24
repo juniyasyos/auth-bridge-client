@@ -65,10 +65,14 @@ class SyncUsersController extends Controller
                 }
 
                 // Do a forced baseline for core fields.
-                foreach (['nip', 'email', 'name', 'active'] as $core) {
+                foreach (['nip', 'email', 'name', 'status'] as $core) {
                     if (! isset($item[$core])) {
                         $item[$core] = $user->{$core} ?? null;
                     }
+                }
+
+                if (! isset($item['active']) && isset($item['status'])) {
+                    $item['active'] = $item['status'] === 'active';
                 }
 
                 // include roles when available; output as simple array of slugs/names
