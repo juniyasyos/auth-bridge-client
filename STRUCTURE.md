@@ -21,9 +21,7 @@ packages/juniyasyos/laravel-iam-client/
 │
 ├── resources/
 │   └── views/
-│       ├── callback-handler.blade.php
-│       └── components/
-│           └── filament-login-button.blade.php
+│       └── callback-handler.blade.php
 │
 └── src/
     ├── IamClientServiceProvider.php    # Main service provider
@@ -38,7 +36,6 @@ packages/juniyasyos/laravel-iam-client/
     │   └── IamUserProvisioner.php      # JIT provisioning service
     │
     ├── Support/
-    │   ├── FilamentIntegration.php     # Optional Filament hooks
     │   └── IamConfig.php               # Helper untuk membaca config per guard
     │
     ├── Data/

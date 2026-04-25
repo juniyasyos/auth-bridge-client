@@ -163,21 +163,6 @@ class IamConfig
         return sprintf('iam.logout.%s', $guard);
     }
 
-    public static function filamentEnabled(): bool
-    {
-        return (bool) config('iam.filament.enabled', false);
-    }
-
-    public static function filamentConfig(?string $key = null, $default = null)
-    {
-        $config = config('iam.filament', []);
-
-        if ($key === null) {
-            return $config;
-        }
-
-        return data_get($config, $key, $default);
-    }
 
     /**
      * Whether the user‑sync endpoint should be active.  This check first

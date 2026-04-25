@@ -71,9 +71,6 @@ class SyncUsersController extends Controller
                     }
                 }
 
-                if (! isset($item['active']) && isset($item['status'])) {
-                    $item['active'] = $item['status'] === 'active';
-                }
 
                 // include roles when available; output as simple array of slugs/names
                 if (method_exists($user, 'getRoleNames')) {

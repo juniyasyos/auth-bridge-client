@@ -3,7 +3,6 @@
 namespace Juniyasyos\IamClient;
 
 use Illuminate\Support\ServiceProvider;
-use Juniyasyos\IamClient\Support\FilamentIntegration;
 
 class IamClientServiceProvider extends ServiceProvider
 {
@@ -86,7 +85,5 @@ class IamClientServiceProvider extends ServiceProvider
                 \Juniyasyos\IamClient\Console\Commands\UserApplicationsCommand::class,
             ]);
         }
-
-        FilamentIntegration::boot();
     }
 }

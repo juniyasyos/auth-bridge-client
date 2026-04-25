@@ -109,7 +109,7 @@ class PushUsersController extends Controller
                 'nip' => $nip ?? null,
                 'email' => $email ?? null,
                 'name' => data_get($item, 'name'),
-                'status' => $this->resolveStatusValue($item, 'active'),
+                'status' => $this->resolveStatusValue($item),
             ], function ($value) {
                 return $value !== null;
             });
@@ -276,7 +276,7 @@ class PushUsersController extends Controller
     protected function resolveStatusValue(array $item): ?string
     {
         if (array_key_exists('status', $item) && $item['status'] !== null) {
-            return $item['status'];
+            return trim((string) $item['status']);
         }
 
         if (! array_key_exists('active', $item)) {

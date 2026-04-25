@@ -210,8 +210,30 @@ return [
     'unit_kerja_field' => env('IAM_UNIT_KERJA_FIELD', 'unit_kerja'),
     'require_unit_kerja' => env('IAM_REQUIRE_UNIT_KERJA', false),
     'sync_unit_kerja' => env('IAM_SYNC_UNIT_KERJA', true),
-    'unit_kerja_model' => env('IAM_UNIT_KERJA_MODEL', App\Models\UnitKerja::class),
+    'unit_kerja_model' => env('IAM_UNIT_KERJA_MODEL', \Juniyasyos\IamClient\Models\UnitKerja::class),
     'roles_field' => env('IAM_ROLES_FIELD', 'roles'),
+
+    /*
+    |------------------------------------------------------------------------
+    | Unit Kerja Center / Client Sync
+    |------------------------------------------------------------------------
+    |
+    | These settings control the optional Unit Kerja provisioning endpoints
+    | and the client-side sync actions that integrate with an App Center.
+    |
+    */
+    'unit_kerja' => [
+        'center_application' => env('IAM_UNIT_KERJA_CENTER_APPLICATION', false),
+        'app_center_url' => env('IAM_UNIT_KERJA_APP_CENTER_URL', null),
+        'sync' => [
+            'active' => env('IAM_UNIT_KERJA_SYNC_ACTIVE', false),
+        ],
+        'push' => [
+            'active' => env('IAM_UNIT_KERJA_PUSH_ACTIVE', true),
+            'path' => env('IAM_UNIT_KERJA_PUSH_PATH', 'client/push'),
+            'middleware' => env('IAM_UNIT_KERJA_PUSH_MIDDLEWARE', 'api') ? explode(',', env('IAM_UNIT_KERJA_PUSH_MIDDLEWARE', 'api')) : ['api'],
+        ],
+    ],
 
     /*
     |--------------------------------------------------------------------------
@@ -453,8 +475,8 @@ return [
     | Guard Specific Configuration
     |--------------------------------------------------------------------------
     |
-    | Allows overriding guard, redirect, and Filament specific settings per
-    | guard. Values fall back to the legacy keys above for backwards
+    | Allows overriding guard and redirect specific settings per guard.
+    | Values fall back to the legacy keys above for backwards
     | compatibility.
     |
     */
@@ -465,31 +487,8 @@ return [
             'login_route_name' => env('IAM_LOGIN_ROUTE_NAME', 'login'),
             'logout_redirect_route' => env('IAM_LOGOUT_REDIRECT', 'home'),
         ],
-        'filament' => [
-            'guard' => env('IAM_FILAMENT_GUARD', 'filament'),
-            'redirect_route' => env('IAM_FILAMENT_REDIRECT_ROUTE', null),
-            'login_route_name' => env('IAM_FILAMENT_LOGIN_ROUTE_NAME', 'filament.auth.login'),
-            'logout_redirect_route' => env('IAM_FILAMENT_LOGOUT_REDIRECT', null),
-        ],
     ],
 
-    /*
-    |--------------------------------------------------------------------------
-    | Filament Integration
-    |--------------------------------------------------------------------------
-    |
-    | When enabled, additional routes, hooks, and UI helpers for Filament will
-    | be registered. Disable to keep the package framework agnostic.
-    |
-    */
-    'filament' => [
-        'enabled' => env('IAM_FILAMENT_ENABLED', false),
-        'panel' => env('IAM_FILAMENT_PANEL', 'admin'),
-        'login_route' => env('IAM_FILAMENT_LOGIN_ROUTE', '/filament/sso/login'),
-        'callback_route' => env('IAM_FILAMENT_CALLBACK_ROUTE', '/filament/sso/callback'),
-        'login_button_text' => env('IAM_FILAMENT_LOGIN_BUTTON', 'Login via IAM'),
-        'logout_route' => env('IAM_FILAMENT_LOGOUT_ROUTE'),
-        'middleware' => ['web'],
-    ],
+
 
 ];

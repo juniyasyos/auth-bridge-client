@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::table('users', function (Blueprint $table) {
             $table->unsignedBigInteger('iam_id')->nullable()->index()->after('id');
-            $table->boolean('active')->default(true);
+            $table->enum('status', ['active', 'inactive', 'suspended'])->default('active');
         });
     }
 
@@ -23,7 +23,7 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('users', function (Blueprint $table) {
-            $table->dropColumn(['iam_id', 'active']);
+            $table->dropColumn(['iam_id', 'status']);
         });
     }
 };

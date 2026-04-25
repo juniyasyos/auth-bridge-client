@@ -48,6 +48,18 @@ Route::middleware($middleware)->group(function () {
         ->name('iam.push-users');
 });
 
+Route::prefix('api/manage-unit-kerja')->group(function () {
+    Route::get('/center/provision', \Juniyasyos\IamClient\Http\Controllers\CenterSyncController::class)
+        ->name('iam.unit-kerja.center.provision');
+
+    Route::post('/client/sync', \Juniyasyos\IamClient\Http\Controllers\ClientSyncController::class)
+        ->name('iam.unit-kerja.client.sync');
+
+    Route::post(config('iam.unit_kerja.push.path', 'client/push'), \Juniyasyos\IamClient\Http\Controllers\ClientPushUnitKerjaController::class)
+        ->middleware(config('iam.unit_kerja.push.middleware', ['api']))
+        ->name('iam.unit-kerja.client.push');
+});
+
 // Health endpoint for IAM -> client check (bearer token or no-auth). Does not mutate state.
 Route::get('/api/iam/health', \Juniyasyos\IamClient\Http\Controllers\HealthController::class)
     ->name('iam.health');
@@ -89,22 +101,3 @@ Route::middleware('web')->group(function () {
         ->defaults('guard', 'web');
 });
 
-if (IamConfig::filamentEnabled() && class_exists('Filament\\Facades\\Filament')) {
-    Route::middleware(IamConfig::filamentConfig('middleware', ['web']))->group(function () {
-        Route::get(IamConfig::filamentConfig('login_route', '/filament/sso/login'), SsoLoginRedirectController::class)
-            ->name('iam.sso.login.filament')
-            ->defaults('guard', 'filament');
-
-        Route::match(['GET', 'POST'], IamConfig::filamentConfig('callback_route', '/filament/sso/callback'), SsoCallbackController::class)
-            ->name('iam.sso.callback.filament')
-            ->defaults('guard', 'filament');
-
-        $logoutRoute = IamConfig::filamentConfig('logout_route');
-
-        if ($logoutRoute) {
-            Route::post($logoutRoute, LogoutController::class)
-                ->name('iam.logout.filament')
-                ->defaults('guard', 'filament');
-        }
-    });
-}

@@ -1,51 +1,69 @@
-# Laravel IAM Client
+# Auth Bridge Client
 
-Laravel package for IAM Single Sign-On (SSO) integration using JWT verification and Just-In-Time (JIT) user provisioning.
+Laravel package for IAM Single Sign-On (SSO), JWT verification, and JIT user provisioning.
 
-## Features
+## Why use this package?
 
-- ✅ **Zero configuration** — minimal setup and ready to use
-- ✅ **Guard-aware SSO routes** — support multiple guards such as `web` and `filament`
-- ✅ **OP-initiated logout** — public endpoint at `/iam/logout` for browser-based logout requests from IAM
-- ✅ **JIT user provisioning** — automatic user creation and updates during login
-- ✅ **JWT token verification** — validate access tokens using IAM endpoints
-- ✅ **Role synchronization** — optional integration with Spatie Permission
-- ✅ **Flexible field mapping** — map custom user fields like `nip`, `nik`, `employee_id`
-- ✅ **Session preservation** — retain session ID during login
-- ✅ **Optional Filament support** — add a “Login via IAM” button to Filament login screens
+This package is designed for client applications that need to:
+
+- authenticate users via IAM
+- provision users automatically during login
+- synchronize roles and application access
+- verify tokens on every request
+- support optional unit kerja sync
+
+## Highlights
+
+- ✅ Minimal setup for a Laravel client
+- ✅ IIS-compatible JWT verification
+- ✅ JIT user provisioning from the IAM token
+- ✅ Optional role sync with Spatie Permission
+- ✅ Built-in IAM sync endpoints for user/role data
+- ✅ Optional Livewire app switcher for current IAM applications
 
 ## Requirements
 
 - PHP `^8.1`
 - Laravel `^10.0 | ^11.0 | ^12.0`
 - `firebase/php-jwt`
-- `spatie/laravel-permission` (optional, only for role synchronization)
+- `spatie/laravel-permission` (optional)
 
-## Installation
+## Quick setup
+
+### 1. Install the package
 
 ```bash
-composer require juniyasyos/laravel-iam-client
-php artisan migrate
+composer require juniyasyos/auth-bridge-client
+```
+
+### 2. Publish config
+
+```bash
 php artisan vendor:publish --tag=iam-config
 ```
 
-## Quick Start
+### 3. Run migrations
 
-### 1. Environment Variables
+```bash
+php artisan migrate
+```
+
+### 4. Set environment variables
 
 ```env
+IAM_ENABLED=true
 IAM_APP_KEY=your-app-key
 IAM_JWT_SECRET=your-jwt-secret
 IAM_BASE_URL=https://iam.example.com
-# Optional
 IAM_VERIFY_ENDPOINT=https://iam.example.com/api/verify
 IAM_PRESERVE_SESSION_ID=true
 IAM_SYNC_ROLES=true
 ```
 
-### 2. User Model
+### 5. Configure your User model
 
 ```php
+use Illuminate\Foundation\Auth\User as Authenticatable;
 use Spatie\Permission\Traits\HasRoles;
 
 class User extends Authenticatable
@@ -56,22 +74,18 @@ class User extends Authenticatable
         'iam_id',
         'name',
         'email',
-        'active',
+        'status',
     ];
 }
 ```
 
-### 3. Routes and Middleware
+> Use `status` instead of `active`. The package expects `status` values like `active`, `inactive`, or `suspended`.
 
-This package registers ready-to-use middleware for authentication, token verification, and back-channel request validation.
+### 6. Configure routes
 
-#### Available middleware aliases
+The package already registers the main IAM routes automatically when enabled.
 
-- `iam.auth` — ensures the user is authenticated. Accepts an optional `guard` parameter, such as `iam.auth:web` or `iam.auth:filament`.
-- `iam.verify` — verifies the access token with the IAM verification endpoint, if enabled.
-- `iam.backchannel.verify` — verifies the HMAC signature on back-channel requests.
-
-#### Basic web example
+If you need protected pages, use middleware:
 
 ```php
 Route::middleware(['iam.auth:web'])->group(function () {
@@ -79,127 +93,82 @@ Route::middleware(['iam.auth:web'])->group(function () {
 });
 ```
 
-To use a different guard, change the parameter:
+### 7. Add a login link
 
-```php
-Route::get('/admin', AdminController::class)->middleware('iam.auth:filament');
-```
-
-#### Per-request token verification (optional)
-
-- Middleware: `iam.verify` checks `config('iam.verify_endpoint')` to validate the token on each request.
-- Config toggle: `iam.verify_each_request` (default: `true`).
-- Automatically attach to the `web` group when `iam.attach_verify_middleware` is `true`.
-
-Example:
-
-```php
-Route::middleware(['iam.verify', 'iam.auth:web'])->group(function () {
-    // protected routes
-});
-```
-
-When a JSON API request has an invalid token, the middleware returns a `401` JSON response.
-
-#### OP-initiated logout
-
-A public logout endpoint is available at `/iam/logout` for IAM-initiated browser logout requests. The package handles a full `auth()->logout()` and session invalidation.
-
-### Livewire App Switcher
-
-The package includes a reusable Livewire component for displaying the current user's accessible IAM applications.
-
-#### Requirements
-
-- Livewire must be installed in the client application.
-- `config('iam.enabled')` must be `true`.
-- The IAM session must contain a valid access token under `iam.access_token` or `iam.access_token_backup`.
-
-#### Usage
-
-In any Blade view, render the component with:
-
-```blade
-@livewire('iam-app-switcher')
-```
-
-This component will:
-
-- fetch the current user's applications from IAM
-- cache the result for 5 minutes
-- show a dropdown with app logo, name, and active status
-- navigate to the selected application URL
-
-#### Custom view override
-
-If you need to override the package view in your application, publish the package views:
-
-```bash
-php artisan vendor:publish --tag=iam-views
-```
-
-Then copy and customize the file from `resources/views/vendor/iam-client/livewire/iam-app-switcher.blade.php`.
-
-### Sync Endpoints
-
-The package provides lightweight API routes for IAM to synchronize client application data:
-
-```php
-Route::middleware(['api', 'iam.backchannel.verify'])->group(function () {
-    Route::get('/api/iam/sync-users', \Juniyasyos\IamClient\Http\Controllers\SyncUsersController::class)
-        ->name('iam.sync-users');
-
-    Route::get('/api/iam/sync-roles', \Juniyasyos\IamClient\Http\Controllers\SyncRolesController::class)
-        ->name('iam.sync-roles');
-});
-```
-
-Both routes require a valid HMAC signature and accept an `app_key` query parameter.
-
-- `sync-users` returns local users using fields defined in `config('iam.user_fields')`. If Spatie Permission is enabled, the `roles` key is included.
-- `sync-roles` returns available roles so IAM can keep the source of truth synchronized.
-- `push-roles` is the reverse flow: IAM posts the authoritative role list to the client.
-
-When registering your app in IAM, point the sync URLs to these routes and configure the shared secret in `SSO_SECRET` / `sso.secret`.
-
-### Configuration Notes
-
-- `iam.verify_each_request` — enable or disable per-request token verification.
-- `iam.attach_verify_middleware` — automatically attach `iam.verify` to the `web` group.
-- `iam.require_roles` — reject sessions when the token does not contain roles.
-- `iam.unit_kerja_field` — JWT claim name for the user’s unit/org field.
-- `iam.require_unit_kerja` — reject login when the unit/org claim is missing.
-- `iam.sync_unit_kerja` — synchronize the `unitKerjas()` relation on the user model after provisioning.
-- `iam.unit_kerja_model` — Eloquent model used for unit/org data (default: `App\\Models\\UnitKerja`).
-- `store_access_token_in_session` — store the access token in session under `iam.access_token`.
-
-> Middleware aliases are registered automatically by `IamClientServiceProvider`. Manual registration in `app/Http/Kernel.php` is usually not required.
+Use the built-in login route:
 
 ```blade
 <a href="{{ route('iam.sso.login') }}">Login via IAM</a>
 ```
 
-The package also registers these SSO routes:
+## Configuration overview
 
-- `iam.sso.login` — redirects to IAM
-- `iam.sso.callback` — handles the token response
-- `iam.logout` — performs logout and session cleanup
+Open `config/iam.php` and adjust the following sections.
 
-## Custom Field Mapping
+### SSO settings
 
-```php
-// config/iam.php
-'user_fields' => [
-    'iam_id' => 'sub',
-    'name' => 'name',
-    'email' => 'email',
-    'nip' => 'nip',
-    'nik' => 'nik',
-],
-'identifier_field' => 'iam_id',
+- `iam.app_key` — IAM application key
+- `iam.jwt_secret` — shared JWT secret for validating tokens
+- `iam.base_url` — base URL of the IAM server
+- `iam.login_route` / `iam.callback_route` — local login/callback URLs
+- `iam.default_redirect_after_login` — where to send users after login
+- `iam.guard` — auth guard used by default
+
+### User sync settings
+
+- `iam.user_fields` — map database columns to JWT claims
+- `iam.identifier_field` — primary field used to identify users
+- `iam.sync_users` — exposes `/api/iam/sync-users`
+- `iam.sync_roles` — enable role sync during provisioning
+
+### Token verification
+
+- `iam.verify_each_request` — validate token on every request
+- `iam.attach_verify_middleware` — automatically push `iam.verify` into the `web` middleware group
+
+### Unit Kerja sync (optional)
+
+- `iam.unit_kerja_field` — JWT claim name for unit/org data
+- `iam.require_unit_kerja` — reject login if unit/org is missing
+- `iam.sync_unit_kerja` — sync `unitKerjas()` relation on the user model
+- `iam.unit_kerja_model` — model for unit/org records
+
+## Routes registered by the package
+
+The package exposes these routes when enabled:
+
+- `iam.sso.login` — redirect user to IAM login
+- `iam.sso.callback` — handle callback and provisioning
+- `iam.logout` — logout and clear IAM session
+- `iam.sync-users` — IAM pulls client user data
+- `iam.sync-roles` — IAM pulls client role data
+- `iam.push-roles` — IAM pushes authoritative role updates
+- `iam.push-users` — IAM pushes user updates to client
+- `iam.health` — health check endpoint
+
+## Middleware aliases
+
+- `iam.auth` — ensures the user is authenticated
+- `iam.verify` — verifies token on each request
+- `iam.backchannel.verify` — verifies IAM back-channel payload signatures
+
+## Usage steps for client apps
+
+1. Install the package and publish config.
+2. Run migrations.
+3. Set `IAM_ENABLED=true`, `IAM_APP_KEY`, `IAM_JWT_SECRET`, and `IAM_BASE_URL`.
+4. Confirm your `User` model has `iam_id`, `email`, `name`, and `status`.
+5. Protect routes with `iam.auth:web`.
+6. Add a login link using `route('iam.sso.login')`.
+7. If needed, publish views for customization:
+
+```bash
+php artisan vendor:publish --tag=iam-views
 ```
 
-## Token Payload Example
+## Example token payload
+
+IAM should send a JWT payload like:
 
 ```json
 {
@@ -210,15 +179,44 @@ The package also registers these SSO routes:
   "email": "john@example.com",
   "nip": "123456",
   "roles": [{"slug": "admin"}],
+  "unit_kerja": ["Finance", "IT"],
   "exp": 1234567890
 }
 ```
 
-## Multi Guard & Custom Redirect
+## Custom field mapping
 
-Configure guards in `config/iam.php`:
+Update `config/iam.php`:
 
 ```php
+'user_fields' => [
+    'iam_id' => 'sub',
+    'name' => 'name',
+    'email' => 'email',
+    'nip' => 'nip',
+    'nik' => 'nik',
+],
+'identifier_field' => 'iam_id',
+```
+
+## Events
+
+A successful login dispatches the `IamAuthenticated` event. Use it for auditing or custom actions.
+
+```php
+use Juniyasyos\IamClient\Events\IamAuthenticated;
+
+Event::listen(IamAuthenticated::class, function ($event) {
+    // $event->user
+    // $event->payload
+    // $event->guard
+});
+```
+
+## License
+
+MIT
+
 'guards' => [
     'web' => [
         'guard' => 'web',
@@ -226,38 +224,10 @@ Configure guards in `config/iam.php`:
         'login_route_name' => 'login',
         'logout_redirect_route' => 'home',
     ],
-    'filament' => [
-        'guard' => 'filament',
-        'redirect_route' => '/admin',
-        'login_route_name' => 'filament.auth.login',
-    ],
 ],
 ```
 
 To add a new guard, register your own route and set `defaults('guard', 'your_guard')` or pass the guard parameter to the controller.
-
-## Filament Integration (Optional)
-
-Enable Filament support with these environment variables:
-
-```env
-IAM_FILAMENT_ENABLED=true
-IAM_FILAMENT_GUARD=filament
-IAM_FILAMENT_PANEL=admin
-IAM_FILAMENT_LOGIN_ROUTE=/filament/sso/login
-IAM_FILAMENT_CALLBACK_ROUTE=/filament/sso/callback
-IAM_FILAMENT_LOGIN_BUTTON="Login via IAM"
-# Optional: override Filament logout to use IAM controller
-# IAM_FILAMENT_LOGOUT_ROUTE=/filament/logout
-```
-
-When Filament is enabled:
-
-1. `/filament/sso/login` and `/filament/sso/callback` routes are generated.
-2. A "Login via IAM" button appears on the Filament login page.
-3. Filament logout can be routed through IAM when `IAM_FILAMENT_LOGOUT_ROUTE` is configured.
-
-> For non-Filament apps, set `IAM_FILAMENT_ENABLED=false` and the package works normally.
 
 ## Event Hooks
 
