@@ -11,9 +11,18 @@ return new class extends Migration
      */
     public function up(): void
     {
+        if (!Schema::hasTable('users')) {
+            return;
+        }
+
         Schema::table('users', function (Blueprint $table) {
-            $table->unsignedBigInteger('iam_id')->nullable()->index()->after('id');
-            $table->enum('status', ['active', 'inactive', 'suspended'])->default('active');
+            if (!Schema::hasColumn('users', 'iam_id')) {
+                $table->unsignedBigInteger('iam_id')->nullable()->index()->after('id');
+            }
+
+            if (!Schema::hasColumn('users', 'status')) {
+                $table->enum('status', ['active', 'inactive', 'suspended'])->default('active');
+            }
         });
     }
 
@@ -22,8 +31,18 @@ return new class extends Migration
      */
     public function down(): void
     {
+        if (!Schema::hasTable('users')) {
+            return;
+        }
+
         Schema::table('users', function (Blueprint $table) {
-            $table->dropColumn(['iam_id', 'status']);
+            if (Schema::hasColumn('users', 'iam_id')) {
+                $table->dropColumn('iam_id');
+            }
+
+            if (Schema::hasColumn('users', 'status')) {
+                $table->dropColumn('status');
+            }
         });
     }
 };

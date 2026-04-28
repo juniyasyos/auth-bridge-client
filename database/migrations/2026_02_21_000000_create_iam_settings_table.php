@@ -2,6 +2,7 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
@@ -11,6 +12,10 @@ return new class extends Migration
      */
     public function up(): void
     {
+        if (Schema::hasTable('iam_settings')) {
+            return;
+        }
+
         // simple key/value table intended to hold a handful of flags that
         // are normally controlled via the configuration file.  The only
         // current use case is the `sync_users` flag, but additional options

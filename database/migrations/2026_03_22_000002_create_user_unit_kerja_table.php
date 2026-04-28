@@ -8,12 +8,14 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('user_unit_kerja', function (Blueprint $table) {
-            $table->foreignId('user_id')->constrained()->cascadeOnDelete()->cascadeOnUpdate();
-            $table->foreignId('unit_kerja_id')->constrained('unit_kerja')->cascadeOnDelete()->cascadeOnUpdate();
-            $table->primary(['user_id', 'unit_kerja_id']);
-            $table->timestamps();
-        });
+        if (!Schema::hasTable('user_unit_kerja')) {
+            Schema::create('user_unit_kerja', function (Blueprint $table) {
+                $table->foreignId('user_id')->constrained()->cascadeOnDelete()->cascadeOnUpdate();
+                $table->foreignId('unit_kerja_id')->constrained('unit_kerja')->cascadeOnDelete()->cascadeOnUpdate();
+                $table->primary(['user_id', 'unit_kerja_id']);
+                $table->timestamps();
+            });
+        }
     }
 
     public function down(): void

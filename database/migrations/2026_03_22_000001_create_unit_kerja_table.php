@@ -8,14 +8,16 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('unit_kerja', function (Blueprint $table) {
-            $table->id();
-            $table->string('unit_name', 100)->unique();
-            $table->string('slug', 255)->nullable();
-            $table->text('description')->nullable();
-            $table->timestamps();
-            $table->softDeletes();
-        });
+        if (!Schema::hasTable('unit_kerja')) {
+            Schema::create('unit_kerja', function (Blueprint $table) {
+                $table->id();
+                $table->string('unit_name', 100)->unique();
+                $table->string('slug', 255)->nullable();
+                $table->text('description')->nullable();
+                $table->timestamps();
+                $table->softDeletes();
+            });
+        }
     }
 
     public function down(): void
