@@ -24,7 +24,7 @@ class IamClientServiceProvider extends ServiceProvider
             $identifier = config('iam.identifier_field', 'email');
             $fields = array_keys(config('iam.user_fields', []));
 
-            if ($identifier && ! in_array($identifier, $fields, true)) {
+            if ($identifier && !in_array($identifier, $fields, true)) {
                 \Illuminate\Support\Facades\Log::warning('IAM config mismatch: identifier_field [' . $identifier . '] is not mapped in iam.user_fields; provisioning may fail.');
             }
         });
@@ -48,8 +48,24 @@ class IamClientServiceProvider extends ServiceProvider
             __DIR__ . '/../resources/views' => resource_path('views/vendor/iam-client'),
         ], 'iam-views');
 
-        // If package disabled via config, skip runtime registrations (routes/middleware)
-        if (! config('iam.enabled', true)) {
+        // If package disabled via config, skip the web routes and optional runtime registrations.
+        if (!config('iam.enabled', true)) {
+            return;
+        }
+
+        // API routes should remain available even when the web SSO flows are disabled.
+        $this->loadRoutesFrom(__DIR__ . '/../routes/iam-api.php');
+
+        // Register middleware aliases
+        // can still be loaded when the package is in API-only mode.
+        $router = $this->app['router'];
+        $router->aliasMiddleware('iam.auth', \Juniyasyos\IamClient\Http\Middleware\EnsureAuthenticated::class);
+        $router->aliasMiddleware('iam.backchannel.verify', \Juniyasyos\IamClient\Http\Middleware\VerifyIamBackchannelSignature::class);
+        $router->aliasMiddleware('iam.verify', \Juniyasyos\IamClient\Http\Middleware\VerifyIamToken::class);
+        $router->aliasMiddleware('iam.timeout', \Juniyasyos\IamClient\Http\Middleware\EnforceSessionTimeout::class);
+
+        // If package disabled via config, skip the web routes and optional runtime registrations.
+        if (!config('iam.enabled', true)) {
             return;
         }
 
@@ -61,13 +77,6 @@ class IamClientServiceProvider extends ServiceProvider
         if (class_exists(\Livewire\Livewire::class)) {
             \Livewire\Livewire::component('iam-app-switcher', \Juniyasyos\IamClient\Http\Livewire\IamAppSwitcher::class);
         }
-
-        // Register middleware aliases
-        $router = $this->app['router'];
-        $router->aliasMiddleware('iam.auth', \Juniyasyos\IamClient\Http\Middleware\EnsureAuthenticated::class);
-        $router->aliasMiddleware('iam.backchannel.verify', \Juniyasyos\IamClient\Http\Middleware\VerifyIamBackchannelSignature::class);
-        $router->aliasMiddleware('iam.verify', \Juniyasyos\IamClient\Http\Middleware\VerifyIamToken::class);
-        $router->aliasMiddleware('iam.timeout', \Juniyasyos\IamClient\Http\Middleware\EnforceSessionTimeout::class);
 
         // Optionally auto-attach the verify middleware to the `web` group when configured
         if (config('iam.attach_verify_middleware', true)) {
