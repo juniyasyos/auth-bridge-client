@@ -27,6 +27,10 @@ Route::middleware($middleware)->group(function () {
     Route::get('/api/iam/sync-roles', SyncRolesController::class)
         ->name('iam.sync-roles');
 
+    // Alias endpoint so IAM/SSO can pull client roles using a clearer path.
+    Route::get('/api/iam/client-roles', SyncRolesController::class)
+        ->name('iam.client-roles');
+
     Route::post('/api/iam/push-roles', \Juniyasyos\IamClient\Http\Controllers\PushRolesController::class)
         ->name('iam.push-roles');
 

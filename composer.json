@@ -2,7 +2,7 @@
     "name": "juniyasyos/auth-bridge-client",
     "description": "Laravel package for IAM SSO integration with JIT user provisioning",
     "type": "library",
-    "license": "MIT",
+    "license": "Proprietary",
     "keywords": [
         "laravel",
         "sso",

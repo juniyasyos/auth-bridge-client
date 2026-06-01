@@ -118,13 +118,13 @@ Open `config/iam.php` and adjust the following sections.
 
 - `iam.user_fields` — map database columns to JWT claims
 - `iam.identifier_field` — primary field used to identify users
-- `iam.sync_users` — exposes `/api/iam/sync-users`
+- `iam.sync_users` — exposes `/api/iam/sync-users` for IAM data requests
 - `iam.sync_roles` — enable role sync during provisioning
 
 ### Token verification
 
 - `iam.verify_each_request` — validate token on every request
-- `iam.attach_verify_middleware` — automatically push `iam.verify` into the `web` middleware group
+- `iam.attach_verify_middleware` — automatically add `iam.verify` into the `web` middleware group
 
 ### Unit Kerja sync (optional)
 
@@ -137,13 +137,16 @@ Open `config/iam.php` and adjust the following sections.
 
 The package exposes these routes when enabled:
 
+Route API IAM didefinisikan di `routes/iam-api.php`, sedangkan route web SSO didefinisikan di `routes/iam-client.php`.
+
 - `iam.sso.login` — redirect user to IAM login
 - `iam.sso.callback` — handle callback and provisioning
 - `iam.logout` — logout and clear IAM session
-- `iam.sync-users` — IAM pulls client user data
-- `iam.sync-roles` — IAM pulls client role data
-- `iam.push-roles` — IAM pushes authoritative role updates
-- `iam.push-users` — IAM pushes user updates to client
+- `iam.sync-users` — endpoint permintaan data user dari client (read-only)
+- `iam.sync-roles` — endpoint permintaan data role dari client (read-only)
+- `iam.client-roles` — alias endpoint permintaan data role dari client (read-only)
+- `iam.push-roles` — endpoint sinkronisasi role oleh IAM ke client app
+- `iam.push-users` — endpoint sinkronisasi user oleh IAM ke client app
 - `iam.health` — health check endpoint
 
 ## Middleware aliases
@@ -210,34 +213,6 @@ Event::listen(IamAuthenticated::class, function ($event) {
     // $event->user
     // $event->payload
     // $event->guard
-});
-```
-
-## License
-
-MIT
-
-'guards' => [
-    'web' => [
-        'guard' => 'web',
-        'redirect_route' => '/',
-        'login_route_name' => 'login',
-        'logout_redirect_route' => 'home',
-    ],
-],
-```
-
-To add a new guard, register your own route and set `defaults('guard', 'your_guard')` or pass the guard parameter to the controller.
-
-## Event Hooks
-
-A successful login dispatches the `IamAuthenticated` event. Listen to this event for auditing, downstream provisioning, or custom logging.
-
-```php
-use Juniyasyos\IamClient\Events\IamAuthenticated;
-
-Event::listen(IamAuthenticated::class, function ($event) {
-    // $event->user, $event->payload, $event->guard
 });
 ```
 

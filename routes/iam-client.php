@@ -4,9 +4,7 @@ use Illuminate\Support\Facades\Route;
 use Juniyasyos\IamClient\Http\Controllers\SsoLoginRedirectController;
 use Juniyasyos\IamClient\Http\Controllers\SsoCallbackController;
 use Juniyasyos\IamClient\Http\Controllers\LogoutController;
-use Juniyasyos\IamClient\Http\Controllers\SyncRolesController;
 use Juniyasyos\IamClient\Http\Controllers\IamInitiatedLogoutController;
-use Juniyasyos\IamClient\Support\IamConfig;
 
 /*
 |--------------------------------------------------------------------------
@@ -16,53 +14,6 @@ use Juniyasyos\IamClient\Support\IamConfig;
 | These routes handle SSO login flow with IAM server.
 |
 */
-
-// API endpoints for IAM synchronization.  Routes may be wrapped in the
-// back-channel verification middleware depending on configuration.  This
-// allows easier testing/development when you just need the URL but don't
-// want to bother with generating a valid signature or token.
-
-$middleware = ['api'];
-if (config('iam.backchannel_verify', true)) {
-    $middleware[] = 'iam.backchannel.verify';
-}
-
-Route::middleware($middleware)->group(function () {
-    // returned JSON structure matches what the server's sync services expect
-
-    if (\Juniyasyos\IamClient\Support\IamConfig::syncUsersEnabled()) {
-        // only expose the user-sync endpoint when enabled; otherwise the route
-        // is not registered and any incoming request will receive a 404.
-        Route::get('/api/iam/sync-users', \Juniyasyos\IamClient\Http\Controllers\SyncUsersController::class)
-            ->name('iam.sync-users');
-    }
-
-    Route::get('/api/iam/sync-roles', SyncRolesController::class)
-        ->name('iam.sync-roles');
-
-    // Incoming role sync from IAM to this client (IAM pushes authoritative role set)
-    Route::post('/api/iam/push-roles', \Juniyasyos\IamClient\Http\Controllers\PushRolesController::class)
-        ->name('iam.push-roles');
-
-    Route::post('/api/iam/push-users', \Juniyasyos\IamClient\Http\Controllers\PushUsersController::class)
-        ->name('iam.push-users');
-});
-
-Route::prefix('api/manage-unit-kerja')->group(function () {
-    Route::get('/center/provision', \Juniyasyos\IamClient\Http\Controllers\CenterSyncController::class)
-        ->name('iam.unit-kerja.center.provision');
-
-    Route::post('/client/sync', \Juniyasyos\IamClient\Http\Controllers\ClientSyncController::class)
-        ->name('iam.unit-kerja.client.sync');
-
-    Route::post(config('iam.unit_kerja.push.path', 'client/push'), \Juniyasyos\IamClient\Http\Controllers\ClientPushUnitKerjaController::class)
-        ->middleware(config('iam.unit_kerja.push.middleware', ['api']))
-        ->name('iam.unit-kerja.client.push');
-});
-
-// Health endpoint for IAM -> client check (bearer token or no-auth). Does not mutate state.
-Route::get('/api/iam/health', \Juniyasyos\IamClient\Http\Controllers\HealthController::class)
-    ->name('iam.health');
 
 Route::middleware('web')->group(function () {
     // Redirect to IAM login page
