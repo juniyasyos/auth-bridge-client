@@ -6,6 +6,9 @@ on:
   schedule:
     - cron: '0 0 * * 0'
 
+permissions:
+  contents: write
+
 jobs:
   sbom:
     name: Generate SBOM
@@ -24,4 +27,4 @@ jobs:
           author_email: github-actions@github.com
           message: "chore: update SBOM"
           add: "docs/sbom-cyclonedx.json"
-          signoff: false
+          github_token: ${{ secrets.GITHUB_TOKEN }}

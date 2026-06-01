@@ -2,7 +2,7 @@
     "name": "juniyasyos/nexaid-client",
     "description": "Laravel package for IAM SSO integration with JIT user provisioning",
     "type": "library",
-    "license": "Proprietary",
+    "license": "proprietary",
     "keywords": [
         "laravel",
         "sso",
