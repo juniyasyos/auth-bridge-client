@@ -218,4 +218,11 @@ Event::listen(IamAuthenticated::class, function ($event) {
 
 ## License
 
-MIT
+This project is proprietary software.
+
+Copyright © 2026 Ahmad Ilyas.
+
+All Rights Reserved.
+
+No permission is granted to use, modify, distribute,
+or sublicense this software without explicit written approval.
