@@ -1,0 +1,27 @@
+name: Generate SBOM
+
+on:
+  push:
+    branches: [ main, master ]
+  schedule:
+    - cron: '0 0 * * 0'
+
+jobs:
+  sbom:
+    name: Generate SBOM
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Generate SBOM (CycloneDX JSON)
+        run: |
+          docker run --rm -v "${{ github.workspace }}:/workspace" -w /workspace anchore/syft:latest -o cyclonedx-json . > docs/sbom-cyclonedx.json
+
+      - name: Commit SBOM
+        uses: EndBug/add-and-commit@v9
+        with:
+          author_name: github-actions
+          author_email: github-actions@github.com
+          message: "chore: update SBOM"
+          add: "docs/sbom-cyclonedx.json"
+          signoff: false

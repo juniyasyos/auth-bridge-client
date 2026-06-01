@@ -36,6 +36,9 @@
             "Juniyasyos\\IamClient\\Tests\\": "tests/"
         }
     },
+    "scripts": {
+        "sbom": "docker run --rm -v $(pwd):/workspace -w /workspace anchore/syft:latest -o cyclonedx-json . > docs/sbom-cyclonedx.json"
+    },
     "extra": {
         "laravel": {
             "providers": [
