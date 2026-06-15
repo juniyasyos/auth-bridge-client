@@ -55,7 +55,7 @@ IAM_ENABLED=true
 IAM_APP_KEY=your-app-key
 IAM_JWT_SECRET=your-jwt-secret
 IAM_BASE_URL=https://iam.example.com
-IAM_VERIFY_ENDPOINT=https://iam.example.com/api/verify
+IAM_BACKCHANNEL=http://iam-server-container:8000 # Optional: For internal Docker networking API calls
 IAM_PRESERVE_SESSION_ID=true
 IAM_SYNC_ROLES=true
 ```
@@ -109,7 +109,8 @@ Open `config/iam.php` and adjust the following sections.
 
 - `iam.app_key` — IAM application key
 - `iam.jwt_secret` — shared JWT secret for validating tokens
-- `iam.base_url` — base URL of the IAM server
+- `iam.base_url` — public base URL of the IAM server (for browser redirects)
+- `iam.backchannel_url` — internal base URL of the IAM server (for server-to-server API calls, e.g. Docker networking)
 - `iam.login_route` / `iam.callback_route` — local login/callback URLs
 - `iam.default_redirect_after_login` — where to send users after login
 - `iam.guard` — auth guard used by default

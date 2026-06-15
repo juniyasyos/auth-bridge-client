@@ -73,14 +73,25 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | IAM Backchannel URL
+    |--------------------------------------------------------------------------
+    |
+    | The internal base URL of your IAM server for server-to-server communication
+    | (e.g. inside Docker network). If null, base_url is used.
+    |
+    */
+    'backchannel_url' => env('IAM_BACKCHANNEL', null),
+
+    /*
+    |--------------------------------------------------------------------------
     | Token Verification Endpoint
     |--------------------------------------------------------------------------
     |
     | Optional explicit endpoint for JWT verification. When null, the package
-    | will derive it from the IAM base URL.
+    | will derive it from the IAM base URL (or backchannel URL).
     |
     */
-    'verify_endpoint' => env('IAM_VERIFY_ENDPOINT', 'http://localhost:8000/api/sso/verify'),
+    'verify_endpoint' => env('IAM_VERIFY_ENDPOINT', null),
 
     /*
     |--------------------------------------------------------------------------

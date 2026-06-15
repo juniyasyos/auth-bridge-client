@@ -48,6 +48,17 @@ class IamConfig
         return rtrim((string) config('iam.base_url'), '/');
     }
 
+    public static function backchannelBaseUrl(): string
+    {
+        $backchannel = config('iam.backchannel_url');
+
+        if (! empty($backchannel)) {
+            return rtrim((string) $backchannel, '/');
+        }
+
+        return self::baseUrl();
+    }
+
     public static function verifyEndpoint(): string
     {
         $explicit = (string) config('iam.verify_endpoint');
@@ -62,9 +73,9 @@ class IamConfig
             return $service;
         }
 
-        $host = self::baseUrl();
+        $host = self::backchannelBaseUrl();
 
-        return $host . '/api/verify';
+        return $host . '/api/sso/verify';
     }
 
     public static function userApplicationsEndpoint(): string
@@ -81,7 +92,7 @@ class IamConfig
             return $service;
         }
 
-        $host = self::baseUrl();
+        $host = self::backchannelBaseUrl();
 
         return $host . '/api/users/applications';
     }
@@ -100,7 +111,7 @@ class IamConfig
             return $service;
         }
 
-        $host = self::baseUrl();
+        $host = self::backchannelBaseUrl();
 
         return $host . '/api/users/applications/detail';
     }
@@ -126,7 +137,7 @@ class IamConfig
             return $service;
         }
 
-        $host = self::baseUrl();
+        $host = self::backchannelBaseUrl();
 
         return $host . '/api/sso/token/refresh';
     }
