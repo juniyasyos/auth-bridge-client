@@ -2,6 +2,16 @@
 
 All notable changes to `nexaid-client` will be documented in this file.
 
+## [1.2.16] - 2026-06-25
+### Fixed
+- Fix immediate SSO logout loop caused by Laravel `url.intended` caching `/logout` requests prior to login.
+
+## [1.2.15] - 2026-06-25
+### Fixed
+- Rename `auth-bridge-client` to `nexaid-client` to reflect the new branding.
+### Chore
+- Update SBOM (Software Bill of Materials).
+
 ## [1.2.13] - 2026-06-25
 ### Optimized
 - Enrich logging context across various controllers (Logout, SsoCallback, SyncUsers, PushUsers, etc.) by injecting `action`, `method`, `url`, `ip`, `user_agent`, and `timestamp` for detailed traceability.
