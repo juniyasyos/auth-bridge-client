@@ -50,7 +50,13 @@ class SyncUsersController extends Controller
             // If email is not part of sync mapping the IAM server will get
             // null for email on newly created users.
             Log::warning('iam.sync_users_email_field_missing', [
+                'action' => 'sync_users_email_missing',
+                'method' => __METHOD__,
+                'url' => $request->fullUrl(),
+                'ip' => $request->ip(),
+                'user_agent' => $request->userAgent(),
                 'configured_fields' => array_keys($fields),
+                'timestamp' => now()->toDateTimeString(),
             ]);
         }
 

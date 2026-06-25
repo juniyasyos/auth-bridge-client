@@ -27,9 +27,15 @@ class LogoutController extends Controller
         $sessionId = session()->getId();
 
         Log::info('SSO logout initiated', [
+            'action' => 'logout_initiated',
+            'method' => __METHOD__,
+            'url' => $request->fullUrl(),
+            'ip' => $request->ip(),
+            'user_agent' => $request->userAgent(),
             'user_id' => $userId,
             'session_id' => $sessionId,
             'guard' => $guardName,
+            'timestamp' => now()->toDateTimeString(),
         ]);
 
         // Clear application cache before logout
@@ -43,10 +49,16 @@ class LogoutController extends Controller
         request()->session()->forget('iam');
 
         Log::info('SSO logout completed', [
+            'action' => 'logout_completed',
+            'method' => __METHOD__,
+            'url' => $request->fullUrl(),
+            'ip' => $request->ip(),
+            'user_agent' => $request->userAgent(),
             'previous_user_id' => $userId,
             'old_session_id' => $sessionId,
             'new_session_id' => session()->getId(),
             'guard' => $guardName,
+            'timestamp' => now()->toDateTimeString(),
         ]);
 
         // Redirect the user to the IAM server's `/logout` endpoint so the IAM

@@ -420,10 +420,11 @@ tail -f storage/logs/laravel.log
 ```
 
 Contains:
+- Enriched context (e.g. `action`, `method`, `url`, `ip`, `user_agent`, `timestamp`) for comprehensive traceability
 - Successful requests with response info
 - Failed requests with status/body
-- Exceptions with full stack trace
-- Session ID for debugging
+- Exceptions with full stack trace and exact file/line indicators
+- Session ID and guard name for debugging
 
 ---
 

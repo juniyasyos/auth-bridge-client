@@ -26,12 +26,18 @@ class SsoCallbackController extends Controller
         $token = $request->input('token') ?? $request->input('access_token');
 
         Log::info('SSO callback received', [
+            'action' => 'sso_callback_received',
+            'method' => __METHOD__,
+            'url' => $request->fullUrl(),
+            'ip' => $request->ip(),
+            'user_agent' => $request->userAgent(),
             'token' => $token ? 'present' : 'missing',
             'token_preview' => $token ? substr($token, 0, 10) . '...' : null,
             'session_id' => session()->getId(),
             'guard' => $guard,
             'request_ip' => $request->ip(),
             'request_path' => $request->path(),
+            'timestamp' => now()->toDateTimeString(),
         ]);
 
         if (! $token) {
@@ -56,11 +62,17 @@ class SsoCallbackController extends Controller
                 $context = compact('errorCode', 'errorType', 'errorLocation');
 
                 Log::warning('SSO callback error redirect received', array_merge([
+                    'action' => 'sso_callback_error_redirect',
+                    'method' => __METHOD__,
+                    'url' => $request->fullUrl(),
+                    'ip' => $request->ip(),
+                    'user_agent' => $request->userAgent(),
                     'message' => $message,
                     'session_id' => session()->getId(),
                     'guard' => $guard,
                     'request_ip' => $request->ip(),
                     'request_path' => $request->path(),
+                    'timestamp' => now()->toDateTimeString(),
                 ], $context));
 
                 return response()->view('iam-client::callback-handler', [
@@ -69,7 +81,15 @@ class SsoCallbackController extends Controller
                 ], 403);
             }
 
-            Log::warning('SSO callback token missing', ['request' => $request->all()]);
+            Log::warning('SSO callback token missing', [
+                'action' => 'sso_callback_token_missing',
+                'method' => __METHOD__,
+                'url' => $request->fullUrl(),
+                'ip' => $request->ip(),
+                'user_agent' => $request->userAgent(),
+                'request' => $request->all(),
+                'timestamp' => now()->toDateTimeString(),
+            ]);
             abort(400, 'Missing token');
         }
 
@@ -84,9 +104,15 @@ class SsoCallbackController extends Controller
             $this->manager->loginWithToken($token, $guard);
         } catch (IamAuthenticationException $exception) {
             Log::warning('IAM authentication failed', [
+                'action' => 'iam_authentication_failed',
+                'method' => __METHOD__,
+                'url' => $request->fullUrl(),
+                'ip' => $request->ip(),
+                'user_agent' => $request->userAgent(),
                 'message' => $exception->getMessage(),
                 'context' => $exception->context,
                 'guard' => $guard,
+                'timestamp' => now()->toDateTimeString(),
             ]);
 
             $message = 'Autentikasi gagal: ' . $exception->getMessage();
@@ -100,11 +126,17 @@ class SsoCallbackController extends Controller
             ], 403);
         } catch (\Throwable $exception) {
             Log::error('Unexpected SSO callback error', [
+                'action' => 'unexpected_sso_callback_error',
+                'method' => __METHOD__,
+                'url' => $request->fullUrl(),
+                'ip' => $request->ip(),
+                'user_agent' => $request->userAgent(),
                 'message' => $exception->getMessage(),
                 'guard' => $guard,
                 'exception_class' => class_basename($exception),
                 'exception_file' => $exception->getFile(),
                 'exception_line' => $exception->getLine(),
+                'timestamp' => now()->toDateTimeString(),
             ]);
 
             $message = 'Terjadi kesalahan tak terduga pada server. Silakan coba lagi atau hubungi admin.';

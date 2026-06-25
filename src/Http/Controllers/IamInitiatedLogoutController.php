@@ -20,11 +20,17 @@ class IamInitiatedLogoutController extends Controller
         $currentUserId = auth()->id();
 
         Log::info('OP‑initiated logout received', [
+            'action' => 'op_logout_received',
+            'method' => __METHOD__,
+            'url' => $request->fullUrl(),
+            'ip' => $request->ip(),
+            'user_agent' => $request->userAgent(),
             'session_id' => session()->getId(),
             'guard' => $guard,
             'auth_checked' => auth()->check(),
             'auth_user_id' => $currentUserId,
             'request_id' => $request->query('request_id') ?? $request->header('X-IAM-Request-Id'),
+            'timestamp' => now()->toDateTimeString(),
         ]);
 
         $guardName = IamConfig::guardName($guard);
@@ -39,9 +45,15 @@ class IamInitiatedLogoutController extends Controller
         $request->session()->forget('iam');
 
         Log::info('OP‑initiated logout: full_logout_performed', [
+            'action' => 'op_logout_performed',
+            'method' => __METHOD__,
+            'url' => $request->fullUrl(),
+            'ip' => $request->ip(),
+            'user_agent' => $request->userAgent(),
             'guard' => $guardName,
             'previous_user_id' => $currentUserId,
             'request_id' => $request->query('request_id') ?? $request->header('X-IAM-Request-Id'),
+            'timestamp' => now()->toDateTimeString(),
         ]);
 
         // Allow OP to pass `post_logout_redirect` so IAM can continue the

@@ -18,9 +18,15 @@ class PushUsersController extends Controller
 
         if ($mode !== 'push') {
             Log::warning('iam.client.push_users_mode_mismatch', [
+                'action' => 'push_users_mode_mismatch',
+                'method' => __METHOD__,
+                'url' => $request->fullUrl(),
+                'ip' => $request->ip(),
+                'user_agent' => $request->userAgent(),
                 'mode' => $mode,
                 'expected' => 'push',
                 'app_key' => $appKey,
+                'timestamp' => now()->toDateTimeString(),
             ]);
 
             return response()->json([
@@ -33,12 +39,26 @@ class PushUsersController extends Controller
         $users = $request->input('users', []);
 
         Log::info('iam.client.push_users_received', [
+            'action' => 'push_users_received',
+            'method' => __METHOD__,
+            'url' => $request->fullUrl(),
+            'ip' => $request->ip(),
+            'user_agent' => $request->userAgent(),
             'count' => is_array($users) ? count($users) : null,
             'app_key' => $appKey,
+            'timestamp' => now()->toDateTimeString(),
         ]);
 
         if (! is_array($users)) {
-            Log::warning('iam.client.push_users_invalid_payload', ['payload' => $request->all()]);
+            Log::warning('iam.client.push_users_invalid_payload', [
+                'action' => 'push_users_invalid_payload',
+                'method' => __METHOD__,
+                'url' => $request->fullUrl(),
+                'ip' => $request->ip(),
+                'user_agent' => $request->userAgent(),
+                'payload' => $request->all(),
+                'timestamp' => now()->toDateTimeString(),
+            ]);
 
             return response()->json([
                 'success' => false,

@@ -19,7 +19,18 @@ class IamUserApplicationsController extends Controller
         try {
             $data = $this->iamApi->getUserApplications();
         } catch (\Throwable $e) {
-            Log::error('IamUserApplicationsController exception', ['error' => $e->getMessage()]);
+            Log::error('IamUserApplicationsController exception', [
+                'action' => 'fetch_user_applications_error',
+                'method' => __METHOD__,
+                'url' => $request->fullUrl(),
+                'ip' => $request->ip(),
+                'user_agent' => $request->userAgent(),
+                'error' => $e->getMessage(),
+                'exception_class' => class_basename($e),
+                'exception_file' => $e->getFile(),
+                'exception_line' => $e->getLine(),
+                'timestamp' => now()->toDateTimeString(),
+            ]);
             return response()->json(['message' => 'Unable to fetch IAM user applications'], 500);
         }
 

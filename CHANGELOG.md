@@ -2,6 +2,10 @@
 
 All notable changes to `auth-bridge-client` will be documented in this file.
 
+## [1.2.13] - 2026-06-25
+### Optimized
+- Enrich logging context across various controllers (Logout, SsoCallback, SyncUsers, PushUsers, etc.) by injecting `action`, `method`, `url`, `ip`, `user_agent`, and `timestamp` for detailed traceability.
+
 ## [1.2.12] - 2026-06-15
 ### Added
 - `IAM_BACKCHANNEL` environment variable support for internal Docker networking server-to-server API calls.
