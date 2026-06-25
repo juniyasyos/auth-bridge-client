@@ -66,7 +66,7 @@ jaybizzle/crawler-detect                     v1.3.11   MIT
 jean85/pretty-package-versions               2.1.1     MIT
 jeffgreco13/filament-breezy                  v2.6.4    MIT
 jenssegers/agent                             v2.6.4    MIT
-juniyasyos/auth-bridge-client                v1.2.18   MIT
+juniyasyos/nexaid-client                v1.2.18   MIT
 juniyasyos/dash-stack-theme-juniyasyos       v1.3.1    MIT
 juniyasyos/filament-backup                   v3.0.1    MIT
 juniyasyos/filament-media-manager            3.0       MIT

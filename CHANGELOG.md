@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to `auth-bridge-client` will be documented in this file.
+All notable changes to `nexaid-client` will be documented in this file.
 
 ## [1.2.13] - 2026-06-25
 ### Optimized

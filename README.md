@@ -33,7 +33,7 @@ This package is designed for client applications that need to:
 ### 1. Install the package
 
 ```bash
-composer require juniyasyos/auth-bridge-client
+composer require juniyasyos/nexaid-client
 ```
 
 ### 2. Publish config

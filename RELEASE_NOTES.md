@@ -3,7 +3,7 @@
 ## v1.2.0 - 2026-04-25
 
 ### Overview
-Pembaruan ini memperkuat `auth-bridge-client` sebagai paket Laravel yang fokus pada sisi client IAM:
+Pembaruan ini memperkuat `nexaid-client` sebagai paket Laravel yang fokus pada sisi client IAM:
 
 - memisahkan dukungan Filament dan menjadikan package bebas Filament
 - menyatukan logika unit kerja langsung ke client
@@ -15,11 +15,11 @@ Pembaruan ini memperkuat `auth-bridge-client` sebagai paket Laravel yang fokus p
 - **Non-Filament client mode:** tidak perlu memasang Filament untuk menggunakan package
 - **Unit Kerja sync:** support `GET /api/manage-unit-kerja/center/provision`, `POST /api/manage-unit-kerja/client/sync`, dan push sync
 - **Status-based user provisioning:** `status` sekarang digunakan sebagai sumber kebenaran untuk `active/inactive/suspended`
-- **Cleaner package identity:** menggunakan nama package `juniyasyos/auth-bridge-client`
+- **Cleaner package identity:** menggunakan nama package `juniyasyos/nexaid-client`
 - **Lebih jelas bagi client developers:** dokumentasi dan route yang langsung relevan untuk aplikasi Laravel client
 
 ### Client usage
-- `composer require juniyasyos/auth-bridge-client`
+- `composer require juniyasyos/nexaid-client`
 - publish config dengan `php artisan vendor:publish --tag=iam-config`
 - jalankan migration
 - atur `IAM_APP_KEY`, `IAM_JWT_SECRET`, `IAM_BASE_URL`
@@ -33,12 +33,12 @@ Pembaruan ini memperkuat `auth-bridge-client` sebagai paket Laravel yang fokus p
   - `spatie/laravel-permission` (opsional)
 
 ### Notes
-Update ini membuat `auth-bridge-client` lebih siap dipasang di aplikasi Laravel tanpa ketergantungan Filament, serta memperkuat alur SSO, sinkronisasi user, dan unit kerja.
+Update ini membuat `nexaid-client` lebih siap dipasang di aplikasi Laravel tanpa ketergantungan Filament, serta memperkuat alur SSO, sinkronisasi user, dan unit kerja.
 
 ## v1.0.0 - 2024-01-01
 
 ### Overview
-`auth-bridge-client` is a Laravel package built for seamless Single Sign-On (SSO) integration with an IAM server. This release delivers a complete foundation for authentication, user provisioning, JWT validation, and role synchronization.
+`nexaid-client` is a Laravel package built for seamless Single Sign-On (SSO) integration with an IAM server. This release delivers a complete foundation for authentication, user provisioning, JWT validation, and role synchronization.
 
 ### Key Features
 - **SSO Integration** with IAM server
@@ -63,7 +63,7 @@ Update ini membuat `auth-bridge-client` lebih siap dipasang di aplikasi Laravel 
 
 ### Installation
 ```bash
-composer require juniyasyos/auth-bridge-client
+composer require juniyasyos/nexaid-client
 php artisan migrate
 php artisan vendor:publish --tag=iam-config
 ```
