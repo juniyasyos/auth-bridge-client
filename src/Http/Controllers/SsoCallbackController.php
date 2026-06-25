@@ -150,6 +150,11 @@ class SsoCallbackController extends Controller
             ], 500);
         }
 
+        // Prevent immediate logout loop if the user originally requested /logout
+        if (str_contains((string) session()->get('url.intended', ''), '/logout')) {
+            session()->forget('url.intended');
+        }
+
         $redirectTo = IamConfig::guardRedirect($guard);
 
         return redirect()->intended($redirectTo);
