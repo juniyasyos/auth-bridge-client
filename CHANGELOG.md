@@ -2,6 +2,10 @@
 
 All notable changes to `nexaid-client` will be documented in this file.
 
+## [1.2.17] - 2026-06-25
+### Fixed
+- Fix unit_kerja relation sync during user push by preventing automatic creation of missing master unit_kerja records, avoiding database constraint errors.
+
 ## [1.2.16] - 2026-06-25
 ### Fixed
 - Fix immediate SSO logout loop caused by Laravel `url.intended` caching `/logout` requests prior to login.

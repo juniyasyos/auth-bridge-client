@@ -300,6 +300,11 @@ class PushUsersController extends Controller
 
             if ($unit) {
                 $unitIds[] = $unit->getKey();
+            } else {
+                Log::warning('IAM unit_kerja push sync skipped because unit_kerja master data does not exist locally.', [
+                    'user_id' => $user->getKey(),
+                    'unit_kerja_data' => $unitKerjaItem,
+                ]);
             }
         }
 
@@ -447,65 +452,33 @@ class PushUsersController extends Controller
         $id = data_get($unitKerjaData, 'id');
         $slug = trim((string) data_get($unitKerjaData, 'slug', ''));
         $unitName = trim((string) data_get($unitKerjaData, 'unit_name', ''));
-        $description = array_key_exists('description', $unitKerjaData)
-            ? data_get($unitKerjaData, 'description')
-            : $defaultDescription;
+
+        $query = $unitKerjaModel::query();
+        if (in_array(\Illuminate\Database\Eloquent\SoftDeletes::class, class_uses_recursive($unitKerjaModel))) {
+            $query->withTrashed();
+        }
 
         $unit = null;
 
-        // Prefer existing record by slug to avoid creating/updating a different
-        // record and causing unique-slug constraint violations.
+        // Prefer existing record by slug
         if ($slug !== '') {
-            $unit = $unitKerjaModel::withTrashed()->where('slug', $slug)->first();
+            $unit = (clone $query)->where('slug', $slug)->first();
         }
 
         if (! $unit && is_numeric($id)) {
-            $unit = $unitKerjaModel::withTrashed()->find($id);
-        }
-
-        if (! $unit && $slug !== '') {
-            $unit = $unitKerjaModel::withTrashed()->firstOrNew(['slug' => $slug]);
+            $unit = (clone $query)->find($id);
         }
 
         if (! $unit && $unitName !== '') {
-            $unit = $unitKerjaModel::withTrashed()->firstOrNew(['unit_name' => $unitName]);
+            $unit = (clone $query)->where('unit_name', $unitName)->first();
         }
 
         if (! $unit) {
             return null;
         }
 
-        $wasTrashed = method_exists($unit, 'trashed') && $unit->trashed();
-        $shouldSave = ! $unit->exists || $wasTrashed;
-
-        $attributes = [];
-
-        if ($unitName !== '') {
-            $attributes['unit_name'] = $unitName;
-        } elseif (! $unit->exists && $slug !== '') {
-            $attributes['unit_name'] = Str::of($slug)->replace(['-', '_'], ' ')->title()->toString();
-        }
-
-        if ($slug !== '') {
-            $attributes['slug'] = $slug;
-        }
-
-        if ($description !== null || array_key_exists('description', $unitKerjaData)) {
-            $attributes['description'] = $description;
-        }
-
-        if (! empty($attributes)) {
-            $unit->fill($attributes);
-            $shouldSave = true;
-        }
-
-        if ($wasTrashed) {
+        if (method_exists($unit, 'trashed') && $unit->trashed()) {
             $unit->restore();
-            $shouldSave = true;
-        }
-
-        if ($shouldSave) {
-            $unit->save();
         }
 
         return $unit;
