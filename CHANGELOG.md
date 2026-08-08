@@ -2,6 +2,16 @@
 
 All notable changes to `nexaid-client` will be documented in this file.
 
+## [Unreleased]
+### Added
+- Laravel 13 support: update `illuminate/support` constraint to `^10.0|^11.0|^12.0|^13.0`.
+- `spatie/laravel-permission` constraint extended to `^5.0|^6.0|^7.0|^8.0` for Laravel 13 compatibility.
+- `orchestra/testbench` constraint extended to `^8.0|^9.0|^10.0|^11.0` for testing against Laravel 13.
+- `phpunit/phpunit` constraint extended to `^10.0|^11.0|^12.0`.
+### Changed
+- Refactor `IamClientServiceProvider`: extract `registerMiddlewareAliases()` and `registerMiddlewareGroups()` into dedicated protected methods for clarity and easier overriding.
+- Remove duplicate `iam.enabled` guard check in `boot()`.
+
 ## [1.2.17] - 2026-06-25
 ### Fixed
 - Fix unit_kerja relation sync during user push by preventing automatic creation of missing master unit_kerja records, avoiding database constraint errors.
